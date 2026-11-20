@@ -1,6 +1,6 @@
 # 博学业务服务端
 
-Java 21 + Spring Boot 模块化单体骨架。
+Java 21 + Spring Boot 3.5.16 模块化单体骨架。
 
 ## 启动
 
@@ -10,6 +10,14 @@ mvn spring-boot:run
 ```
 
 默认端口：`8080`
+本地数据库：PostgreSQL `127.0.0.1:5433/boxue`
+
+启动时 Flyway 自动执行：
+
+```text
+V1__init_schema.sql
+V2__seed_roles_and_permissions.sql
+```
 
 ## 当前接口
 
@@ -35,13 +43,13 @@ sync       增量同步
 media      图片与媒体
 imports    导入导出
 admin      管理后台 API
-ai         AI 预留
+ai         AI 预留（默认关闭）
 common     通用配置、错误处理、安全
 ```
 
 ## 说明
 
-- 当前 `spring.flyway.enabled=false`，数据库迁移脚本写入后改为 `true`。
+- 数据库结构由 Flyway 管理，JPA `ddl-auto: none`。
 - 当前安全配置是骨架，JWT 过滤器、RBAC 权限校验和注册登录逻辑待实现。
 - 本地开发默认管理员：`admin / admin`，仅用于骨架验证，生产环境必须修改。
 - 数据库设计见 `docs/database-design.md`。

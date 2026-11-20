@@ -881,19 +881,21 @@ flutter build apk --debug
 
 ---
 
-## 21. Sprint 0 环境一致性待办
+## 21. Sprint 0 执行结果（2026-11-20）
 
-以下不一致会直接影响开发流程，必须在 Sprint 0 修正：
+Sprint 0 已完成，环境与工程基线已统一：
 
-| 项目 | 当前 | 应统一为 |
-| --- | --- | --- |
-| PostgreSQL 端口 | README/.env/application.yml 写 5432；本机实例是 5433 | 本地统一 5433；Compose 映射 `5433:5432` |
-| 对象存储 | 文档写 MinIO；本机是 RustFS | 统一称“S3 兼容存储”；本地 RustFS，Docker 可用 MinIO |
-| Spring Boot | `pom.xml` 3.4.5；devenv 预热 3.5.16 | 选定一个版本并固定，建议 3.5.x |
-| Node 版本 | 本机 26；CI 22 | 统一 26 LTS |
-| Flutter 版本 | CI 使用 `stable` | 固定 3.50.0 |
-| Android compileSdk | Flutter 默认 36；通知插件要求 37 | 统一 37，并启用 core library desugaring |
-| 契约校验 | 无脚本 | 增加 `contract:lint` / `sdk:gen` |
-| Flyway | `enabled: false` | V1/V2 完成后开启并加迁移测试 |
+| 项目 | 处理结果 |
+| --- | --- |
+| PostgreSQL 端口 | 统一为 **5433**（README、`.env.example`、`application.yml`、`application-local.yml`、Compose） |
+| 对象存储 | 统一称“S3 兼容存储”；本机 RustFS，Compose 使用 MinIO，端口均为 9000/9001 |
+| Spring Boot | 统一升级并固定为 **3.5.16** |
+| Node / pnpm | 统一为 Node **26**、pnpm **12.21.0** |
+| Flutter | 固定 **3.50.0**，CI 不再使用漂移的 `stable` |
+| Android compileSdk | 固定 **37**，启用 core library desugaring |
+| 契约校验 | 新增 `pnpm contract:lint`、`pnpm sdk:gen` 与 `redocly.yaml` |
+| Flyway | 新增 V1/V2，开启 Flyway，增加 Testcontainers 迁移测试 |
+| 基线提交 | 已完成 `chore: import project skeleton` |
+| CI | 固定版本，增加 contracts / web / api / android / security 任务 |
 
-> 这些修正本身就是 Sprint 0 的交付物，完成后本文档与代码、环境才真正一致。
+详细验证记录见 `docs/sprint-0-report.md`。

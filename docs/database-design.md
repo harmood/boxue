@@ -680,7 +680,7 @@ ON qb_knowledge_point (owner_id, path);
 | `size_bytes` | bigint | not null | 大小 |
 | `width` | integer | null | 宽 |
 | `height` | integer | null | 高 |
-| `storage_provider` | varchar(20) | not null default 'MINIO' | 存储 |
+| `storage_provider` | varchar(20) | not null default 'S3' | 存储（S3 兼容） |
 | `storage_key` | text | not null | 对象键 |
 | `alt_text` | varchar(500) | null | 无障碍文本 |
 | `created_at` | timestamptz | not null default now() | 创建时间 |
@@ -1387,7 +1387,7 @@ CREATE TABLE qb_media (
   size_bytes bigint NOT NULL,
   width integer,
   height integer,
-  storage_provider varchar(20) NOT NULL DEFAULT 'MINIO',
+  storage_provider varchar(20) NOT NULL DEFAULT 'S3',
   storage_key text NOT NULL,
   alt_text varchar(500),
   created_at timestamptz NOT NULL DEFAULT now(),

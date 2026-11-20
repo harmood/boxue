@@ -2,6 +2,9 @@ openapi: 3.1.0
 info:
   title: 博学 API
   version: 0.1.0
+  license:
+    name: Proprietary
+    identifier: UNLICENSED
   description: |
     博学多端学习平台 API 契约骨架。
     完整设计见 docs/api-contract.md。
@@ -9,23 +12,37 @@ servers:
   - url: http://localhost:8080/api/v1
     description: 本地开发
 tags:
+  - name: Health
+    description: 服务健康检查
   - name: Auth
+    description: 注册、登录、令牌与设备会话
   - name: User
+    description: 当前用户资料、设置与设备
   - name: Admin
+    description: 管理后台认证、用户、角色、监控与审计
   - name: Banks
+    description: 题库创建、查询、更新与删除
   - name: Questions
+    description: 题目、版本、标签与知识点
   - name: Media
+    description: 图片上传、元数据与引用
   - name: Imports
+    description: 导入与导出任务
   - name: Practice
+    description: 练习会话、作答与结果
   - name: Review
+    description: 错题复习与掌握度
   - name: Sync
+    description: 多端增量同步与冲突处理
   - name: AI
+    description: AI 预留接口，第一阶段默认关闭
 paths:
   /health:
     get:
       tags: [Health]
       summary: 服务健康检查
       operationId: health
+      security: []
       responses:
         "200":
           description: OK
@@ -65,7 +82,6 @@ components:
       type: object
       properties:
         nextCursor:
-          type: string
-          nullable: true
+          type: [string, "null"]
         hasMore:
           type: boolean

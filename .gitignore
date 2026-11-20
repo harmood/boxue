@@ -65,3 +65,5 @@ temp/
 # Generated
 packages/sdk/generated/
 packages/contracts/generated/
+# Local Flutter dependency overrides
+apps/android/pubspec_overrides.yaml

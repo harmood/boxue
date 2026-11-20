@@ -4,8 +4,8 @@
   "private": true,
   "packageManager": "pnpm@12.21.0",
   "engines": {
-    "node": ">=22",
-    "pnpm": ">=10"
+    "node": ">=26",
+    "pnpm": ">=12"
   },
   "scripts": {
     "dev:web": "pnpm --filter @boxue/web dev",
@@ -16,6 +16,14 @@
     "build:admin": "pnpm --filter @boxue/admin build",
     "build:desktop": "pnpm --filter @boxue/desktop build",
     "typecheck": "pnpm -r typecheck",
-    "check": "pnpm typecheck"
+    "check": "pnpm typecheck && pnpm contract:lint",
+    "contract:lint": "redocly lint packages/contracts/openapi.yaml",
+    "contract:bundle": "redocly bundle packages/contracts/openapi.yaml -o packages/contracts/dist/openapi.json",
+    "sdk:gen:ts": "openapi-typescript packages/contracts/openapi.yaml -o packages/sdk/generated/types.ts",
+    "sdk:gen": "pnpm sdk:gen:ts"
+  },
+  "devDependencies": {
+    "@redocly/cli": "^2.80.0",
+    "openapi-typescript": "^7.13.0"
   }
 }

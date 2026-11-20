@@ -18,56 +18,65 @@ boxue/
 │  ├─ sdk/          # 生成的 TypeScript / Dart 客户端
 │  └─ ui/           # 共享 Vue 组件与设计令牌
 ├─ infra/
-│  ├─ docker/       # PostgreSQL / Redis / MinIO / Mailpit
+│  ├─ docker/       # PostgreSQL / Redis / S3 / Mailpit
 │  └─ monitoring/   # Prometheus 配置
 ├─ scripts/         # 本地开发脚本
 ├─ docs/            # 项目文档
 └─ .github/         # CI
 ```
 
-## 当前技术栈
+## 技术栈
 
-- Web：Vue 3 + TypeScript + Vite + Pinia + Vue Router + Element Plus
-- 管理后台：Vue 3 + TypeScript + Vite + Element Plus
-- 桌面端：Electron + Vue 3 + TypeScript
+- Web / Admin：Vue 3 + TypeScript + Vite + Pinia + Vue Router + Element Plus
+- 桌面端：Electron + Vue 3 + TypeScript + better-sqlite3
 - Android：Flutter + Dart + Riverpod + Drift
-- 后端：Java 21 + Spring Boot + Spring Security + Spring Data JPA + Flyway
-- 数据库：PostgreSQL
-- 缓存/队列：Redis
-- 对象存储：MinIO
-- 契约：OpenAPI
+- 后端：Java 21 + Spring Boot 3.5 + Spring Security + Spring Data JPA + Flyway
+- 数据库：PostgreSQL 17
+- 缓存：Redis 8
+- 对象存储：S3 兼容（本机 RustFS / Docker MinIO）
+- 契约：OpenAPI 3.1 + Redocly + openapi-typescript
+- 监控：Actuator + Micrometer + Prometheus + Loki + Grafana
 
-## 本地环境要求
+## 工具链
 
-- Node.js 22+
-- pnpm 10+
-- Java 21 LTS
-- Maven 3.9+
-- Flutter 3.x
-- Docker Desktop
+所有工具链与中间件位于 `C:\Users\ksl-54-it-n04\Project\devenv`，不在 Git 仓库内。
 
-> 项目工具链已放在 `C:\Users\ksl-54-it-n04\Project\devenv\toolchains`。执行 `. ..\devenv\scripts\env.ps1` 激活后即可使用 Java、Maven、Flutter、Android SDK、Node 和 pnpm。
+| 组件 | 版本 |
+| --- | --- |
+| JDK | Temurin 21.0.13+9 |
+| Maven | 3.9.16 |
+| Node.js | 26.13.1 LTS |
+| pnpm | 12.21.0 |
+| Flutter | 3.50.0 |
+| Android SDK | platform 37.0 / build-tools 37.0.0 |
+| PostgreSQL | 17.12（端口 **5433**） |
+| Redis | 8.10.3（端口 6379） |
+| RustFS | 1.0.6（S3 9000 / 控制台 9001） |
 
 ## 快速开始
 
-### 0. 激活本地工具链
+### 0. 激活环境
 
 ```powershell
-. ..\devenv\scripts\env.ps1
+. C:\Users\ksl-54-it-n04\Project\devenv\scripts\env.ps1
 ```
 
-### 1. 启动基础设施
+### 1. 启动本机中间件（推荐）
 
 ```powershell
-.\scripts\db-up.ps1
+C:\Users\ksl-54-it-n04\Project\devenv\scripts\start.ps1
+C:\Users\ksl-54-it-n04\Project\devenv\scripts\status.ps1
 ```
 
-服务：
-
-- PostgreSQL：`localhost:5432`
-- Redis：`localhost:6379`
-- MinIO：`localhost:9000`，控制台 `localhost:9001`
-- Mailpit：`localhost:8025`，SMTP `localhost:1025`
+| 服务 | 地址 |
+| --- | --- |
+| PostgreSQL | `127.0.0.1:5433`，库 `boxue`，用户 `boxue` |
+| Redis | `127.0.0.1:6379` |
+| S3 API | `http://127.0.0.1:9000` |
+| S3 控制台 | `http://127.0.0.1:9001` |
+| Prometheus | `http://127.0.0.1:9090` |
+| Loki | `http://127.0.0.1:3100` |
+| Grafana | `http://127.0.0.1:3000` |
 
 ### 2. 安装前端依赖
 
@@ -75,32 +84,22 @@ boxue/
 pnpm install
 ```
 
-### 3. 启动 Web
+### 3. 启动应用
 
 ```powershell
 pnpm dev:web
-```
-
-### 4. 启动管理后台
-
-```powershell
 pnpm dev:admin
-```
-
-### 5. 启动桌面端
-
-```powershell
 pnpm dev:desktop
 ```
 
-### 6. 启动后端
+后端：
 
 ```powershell
 cd services\api
 mvn spring-boot:run
 ```
 
-### 7. 启动 Android
+Android：
 
 ```powershell
 cd apps\android
@@ -108,10 +107,30 @@ flutter pub get
 flutter run
 ```
 
-首次使用 Flutter 时，如果缺少 Android 平台目录，执行：
+### 4. Docker（可选）
+
+安装 Docker Desktop 后：
 
 ```powershell
-flutter create . --platforms=android
+.\scripts\db-up.ps1
+```
+
+Compose 同样把 PostgreSQL 映射到宿主机 **5433**，S3 使用 9000/9001，避免与原生环境端口冲突。
+
+## 质量检查
+
+```powershell
+pnpm check                 # typecheck + OpenAPI lint
+pnpm build                 # web + admin + desktop
+mvn -f services/api/pom.xml verify
+cd apps\android; flutter analyze; flutter test
+```
+
+契约与 SDK：
+
+```powershell
+pnpm contract:lint
+pnpm sdk:gen
 ```
 
 ## 文档

@@ -4,8 +4,20 @@ logging:
     org.springframework.security: INFO
 
 spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://127.0.0.1:5433/boxue}
+    username: ${SPRING_DATASOURCE_USERNAME:boxue}
+    password: ${SPRING_DATASOURCE_PASSWORD:boxue_dev_pwd}
   security:
     user:
       name: ${BOXUE_ADMIN_USERNAME:admin}
       password: ${BOXUE_ADMIN_PASSWORD:admin}
       roles: ADMIN
+
+boxue:
+  storage:
+    endpoint: ${S3_ENDPOINT:http://127.0.0.1:9000}
+    access-key: ${S3_ACCESS_KEY:boxue_dev}
+    secret-key: ${S3_SECRET_KEY:boxue_dev_secret_change_me}
+    bucket: ${S3_BUCKET:boxue-media}
+    path-style: ${S3_PATH_STYLE:true}

@@ -1,0 +1,10 @@
+extends:
+  - recommended
+
+rules:
+  # 本地开发服务器是契约的一部分，允许 localhost
+  no-server-example.com: off
+  # 骨架阶段只有 health 接口，4xx 响应随具体端点补充
+  operation-4xx-response: off
+  # 共享组件会在后续端点中逐步引用
+  no-unused-components: off

@@ -8,6 +8,7 @@
 | [environment-setup.md](environment-setup.md) | 本地工具链、环境激活、验证结果与已知问题 |
 | [development-workflow.md](development-workflow.md) | 开发流程：分支、契约、迁移、测试、CI、评审、发布与迭代 |
 | [adr/README.md](adr/README.md) | 架构决策记录规范与模板 |
+| [sprint-0-report.md](sprint-0-report.md) | Sprint 0 执行记录、验证结果与已知问题 |
 | [product-analysis.md](product-analysis.md) | 早期产品分析稿，已被项目主文档取代 |
 
 ## 当前阶段
@@ -32,8 +33,10 @@
 
 ## 下一步
 
-1. 补齐 `packages/contracts/openapi.yaml`
-2. 根据 `database-design.md` 编写 Flyway `V1__init_schema.sql`
-3. 实现注册、登录、RBAC 和管理员初始化
-4. 实现题库 CRUD 与四种题型
-5. 实现 Web → Android → 桌面端的第一条同步垂直切片
+1. 实现注册、登录、刷新、RBAC 与管理员引导（Sprint 1）
+2. 补齐 OpenAPI Auth / User / Admin 端点
+3. 实现题库 CRUD 与四种题型
+4. 实现 Web → Android → 桌面端的第一条同步垂直切片
+5. 完善同步冲突与离线场景测试
+
+Sprint 0 已完成，详见 [sprint-0-report.md](sprint-0-report.md)。
