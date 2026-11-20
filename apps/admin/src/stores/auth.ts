@@ -1,32 +1,119 @@
+import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { adminFetch, getAdminAccessToken, setAdminAccessToken } from '../api/http'
+
+export interface AdminProfile {
+  id: string
+  email: string
+  username: string
+  displayName: string | null
+  roles: string[]
+  permissions: string[]
+}
+
+interface AdminLoginResponse {
+  accessToken: string
+  expiresIn: number
+  admin: {
+    id: string
+    email: string
+    username: string
+    displayName: string | null
+  }
+  roles: string[]
+  permissions: string[]
+}
+
+function adminDevice() {
+  let deviceId = localStorage.getItem('boxue.admin.deviceId')
+  if (!deviceId) {
+    deviceId = crypto.randomUUID()
+    localStorage.setItem('boxue.admin.deviceId', deviceId)
+  }
+  return {
+    deviceId,
+    deviceName: 'Admin Console',
+    platform: 'ADMIN',
+    appVersion: '0.1.0'
+  }
+}
 
 export const useAdminAuthStore = defineStore('adminAuth', () => {
-  const accessToken = ref<string | null>(localStorage.getItem('boxue.admin.accessToken'))
+  const accessToken = ref<string | null>(getAdminAccessToken())
+  const admin = ref<AdminProfile | null>(null)
+  const restoring = ref(false)
+
+  const isAuthenticated = computed(() => Boolean(accessToken.value && admin.value))
 
   function setToken(token: string | null) {
     accessToken.value = token
-    if (token) {
-      localStorage.setItem('boxue.admin.accessToken', token)
-    } else {
-      localStorage.removeItem('boxue.admin.accessToken')
+    setAdminAccessToken(token)
+  }
+
+  async function login(email: string, password: string, totpCode?: string) {
+    const data = await adminFetch<AdminLoginResponse>('/admin/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({
+        email,
+        password,
+        totpCode: totpCode || undefined,
+        device: adminDevice()
+      })
+    })
+    setToken(data.accessToken)
+    admin.value = {
+      ...data.admin,
+      roles: data.roles,
+      permissions: data.permissions
     }
   }
 
-  async function login(email: string, password: string, totpCode: string) {
-    // TODO: replace with POST /api/v1/admin/auth/login
-    if (!email || !password) {
-      throw new Error('请输入管理员账号和密码')
+  async function restore() {
+    if (admin.value) {
+      return true
     }
-    if (!totpCode) {
-      throw new Error('请输入 2FA 验证码（开发占位）')
+    if (restoring.value) {
+      return false
     }
-    setToken('dev-admin-token')
+    restoring.value = true
+    try {
+      const me = await adminFetch<AdminProfile>('/admin/auth/me')
+      admin.value = me
+      accessToken.value = getAdminAccessToken()
+      return true
+    } catch {
+      setToken(null)
+      admin.value = null
+      return false
+    } finally {
+      restoring.value = false
+    }
   }
 
-  function logout() {
-    setToken(null)
+  async function logout() {
+    try {
+      await adminFetch<void>('/admin/auth/logout', { method: 'POST' })
+    } catch {
+      // Clear local state even if the session is already gone.
+    } finally {
+      setToken(null)
+      admin.value = null
+    }
   }
 
-  return { accessToken, setToken, login, logout }
+  function hasPermission(code: string) {
+    return admin.value?.permissions.includes(code) ?? false
+  }
+
+  return {
+    accessToken,
+    admin,
+    restoring,
+    isAuthenticated,
+    setToken,
+    login,
+    restore,
+    logout,
+    hasPermission
+  }
 })
