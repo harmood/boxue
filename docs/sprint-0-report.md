@@ -55,11 +55,12 @@ app_feature_flag      4（全部 disabled）
 
 ## 3. 已知问题与处理
 
-### 3.1 本机无 Docker
+### 3.1 Docker（Sprint 0 时未安装，后续已部署）
 
-- Testcontainers 用例在本地自动跳过（`disabledWithoutDocker = true`）。
-- CI 的 `api` 任务必须真实执行迁移测试。
-- Docker 安装后可运行 `scripts/db-up.ps1` 验证 Compose 路径。
+- Sprint 0 验收时本机无 Docker，Testcontainers 用例自动跳过。
+- 2026-11-20 已完成 Docker Desktop / WSL2 部署，四个容器 healthy。
+- 部署步骤、镜像加速与问题处理见 [docker-deployment.md](docker-deployment.md)。
+- CI 的 `api` 任务仍必须真实执行 Testcontainers 迁移测试。
 
 ### 3.2 SQLite 原生库下载
 
@@ -71,7 +72,7 @@ app_feature_flag      4（全部 disabled）
    `.dart_tool/hooks_runner/shared/sqlite3/build/download-<hash>/`；
 3. 在本地 `pubspec_overrides.yaml` 中配置 `url_pattern`（不要提交到仓库）。
 
-Sprint 0 已通过镜像下载并校验 SHA256 后完成构建。
+后续已在 `env.ps1` 加入代理自动探测，并实测自动下载 + SHA256 校验；详见 [docker-deployment.md](docker-deployment.md) 5.7。
 
 ### 3.3 Workmanager Kotlin 插件警告
 

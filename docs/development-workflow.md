@@ -65,6 +65,7 @@
 | Caddy | `http://127.0.0.1:8088` / `8089` | Web/Admin 统一入口 |
 
 > 本机 5432 已被另一个 PostgreSQL 16 实例占用，因此项目统一使用 **5433**。
+> Docker 部署、镜像加速与问题记录见 `docs/docker-deployment.md`。
 > Docker Compose 也建议映射 `5433:5432`，保持两种运行方式的宿主机端口一致。
 
 ### 3.3 配置优先级

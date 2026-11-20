@@ -141,6 +141,7 @@ pnpm sdk:gen
 - [本地开发环境](docs/environment-setup.md)
 - [开发流程](docs/development-workflow.md)
 - [架构决策记录](docs/adr/README.md)
+- [Docker 部署记录](docs/docker-deployment.md)
 - [文档索引](docs/README.md)
 
 ## 当前阶段

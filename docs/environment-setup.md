@@ -123,6 +123,8 @@ cd apps\android; flutter analyze; flutter test
 
 ### Docker / WSL2 状态
 
+> 完整的安装步骤、镜像加速配置、问题处理与验证记录见 [docker-deployment.md](docker-deployment.md)。
+
 已部署并验证：
 
 - Docker Desktop `4.99.0` / Docker CLI `29.9.3`

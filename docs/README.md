@@ -9,6 +9,7 @@
 | [development-workflow.md](development-workflow.md) | 开发流程：分支、契约、迁移、测试、CI、评审、发布与迭代 |
 | [adr/README.md](adr/README.md) | 架构决策记录规范与模板 |
 | [sprint-0-report.md](sprint-0-report.md) | Sprint 0 执行记录、验证结果与已知问题 |
+| [docker-deployment.md](docker-deployment.md) | Docker Desktop/WSL2 安装、镜像加速、问题处理与验证 |
 | [product-analysis.md](product-analysis.md) | 早期产品分析稿，已被项目主文档取代 |
 
 ## 当前阶段
