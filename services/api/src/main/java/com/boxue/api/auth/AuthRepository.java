@@ -255,6 +255,70 @@ public class AuthRepository {
             (rs, rowNum) -> rs.getObject("id", UUID.class), roleCode));
     }
 
+    public void insertEmailVerification(UUID id, UUID userId, String email, String tokenHash, Instant expiresAt) {
+        jdbc.update("""
+            INSERT INTO app_email_verification (id, user_id, email, token_hash, expires_at)
+            VALUES (?, ?, ?, ?, ?)
+            """, id, userId, email, tokenHash, java.sql.Timestamp.from(expiresAt));
+    }
+
+    public Optional<TokenRow> findEmailVerificationByHash(String tokenHash) {
+        return first(jdbc.query("""
+            SELECT id, user_id, expires_at, consumed_at
+            FROM app_email_verification WHERE token_hash = ?
+            """, tokenMapper(), tokenHash));
+    }
+
+    public void consumeEmailVerification(UUID id) {
+        jdbc.update("""
+            UPDATE app_email_verification SET consumed_at = now()
+            WHERE id = ? AND consumed_at IS NULL
+            """, id);
+    }
+
+    public void consumeAllEmailVerifications(UUID userId) {
+        jdbc.update("""
+            UPDATE app_email_verification SET consumed_at = now()
+            WHERE user_id = ? AND consumed_at IS NULL
+            """, userId);
+    }
+
+    public void markEmailVerified(UUID userId) {
+        jdbc.update("""
+            UPDATE app_user
+            SET status = 'ACTIVE', email_verified_at = now(), updated_at = now()
+            WHERE id = ?
+            """, userId);
+    }
+
+    public void insertPasswordReset(UUID id, UUID userId, String tokenHash, Instant expiresAt) {
+        jdbc.update("""
+            INSERT INTO app_password_reset (id, user_id, token_hash, expires_at)
+            VALUES (?, ?, ?, ?)
+            """, id, userId, tokenHash, java.sql.Timestamp.from(expiresAt));
+    }
+
+    public Optional<TokenRow> findPasswordResetByHash(String tokenHash) {
+        return first(jdbc.query("""
+            SELECT id, user_id, expires_at, consumed_at
+            FROM app_password_reset WHERE token_hash = ?
+            """, tokenMapper(), tokenHash));
+    }
+
+    public void consumePasswordReset(UUID id) {
+        jdbc.update("""
+            UPDATE app_password_reset SET consumed_at = now()
+            WHERE id = ? AND consumed_at IS NULL
+            """, id);
+    }
+
+    public void consumeAllPasswordResets(UUID userId) {
+        jdbc.update("""
+            UPDATE app_password_reset SET consumed_at = now()
+            WHERE user_id = ? AND consumed_at IS NULL
+            """, userId);
+    }
+
     public void audit(UUID actorUserId, String action, String targetType, String targetId,
                       String detailsJson, String ip, String userAgent) {
         jdbc.update("""
@@ -262,6 +326,15 @@ public class AuthRepository {
               (actor_user_id, action, target_type, target_id, details, ip, user_agent)
             VALUES (?, ?, ?, ?, ?::jsonb, ?::inet, ?)
             """, actorUserId, action, targetType, targetId, detailsJson, ip, userAgent);
+    }
+
+    private org.springframework.jdbc.core.RowMapper<TokenRow> tokenMapper() {
+        return (rs, rowNum) -> new TokenRow(
+            rs.getObject("id", UUID.class),
+            rs.getObject("user_id", UUID.class),
+            rs.getTimestamp("expires_at").toInstant(),
+            rs.getTimestamp("consumed_at") == null ? null : rs.getTimestamp("consumed_at").toInstant()
+        );
     }
 
     private org.springframework.jdbc.core.RowMapper<UserRow> userMapper() {
@@ -279,6 +352,14 @@ public class AuthRepository {
 
     private <T> Optional<T> first(List<T> rows) {
         return rows.isEmpty() ? Optional.empty() : Optional.of(rows.get(0));
+    }
+
+    public record TokenRow(
+        UUID id,
+        UUID userId,
+        Instant expiresAt,
+        Instant consumedAt
+    ) {
     }
 
     public record UserRow(

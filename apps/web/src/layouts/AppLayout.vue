@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 
@@ -6,9 +7,15 @@ const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
 
-function handleCommand(command: string) {
+onMounted(() => {
+  if (!auth.user) {
+    auth.loadMe().catch(() => undefined)
+  }
+})
+
+async function handleCommand(command: string) {
   if (command === 'logout') {
-    auth.logout()
+    await auth.logout()
     router.push('/login')
   }
 }
@@ -36,7 +43,7 @@ function handleCommand(command: string) {
         </div>
         <el-dropdown @command="handleCommand">
           <span class="user-entry">
-            {{ auth.user?.displayName ?? '未登录' }}
+          {{ auth.user?.displayName || auth.user?.email || '未登录' }}
           </span>
           <template #dropdown>
             <el-dropdown-menu>

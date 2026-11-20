@@ -19,6 +19,12 @@ spring:
     locations: classpath:db/migration
     validate-on-migrate: true
     baseline-on-migrate: false
+  mail:
+    host: ${MAIL_HOST:localhost}
+    port: ${MAIL_PORT:1025}
+    properties:
+      mail.smtp.auth: false
+      mail.smtp.starttls.enable: false
   jackson:
     default-property-inclusion: non_null
     serialization:
@@ -44,6 +50,8 @@ springdoc:
     path: /swagger-ui.html
 
 boxue:
+  mail:
+    from: ${MAIL_FROM:no-reply@boxue.local}
   security:
     jwt:
       issuer: ${JWT_ISSUER:boxue}
@@ -55,6 +63,11 @@ boxue:
     require-email-verification: ${BOXUE_AUTH_REQUIRE_EMAIL_VERIFICATION:false}
     max-failed-logins: 5
     lockout-minutes: 15
+    email-verification-token-minutes: 60
+    password-reset-token-minutes: 30
+    log-dev-links: ${BOXUE_AUTH_LOG_DEV_LINKS:false}
+  web:
+    base-url: ${BOXUE_WEB_BASE_URL:http://localhost:5173}
   ai:
     enabled: false
   sync:

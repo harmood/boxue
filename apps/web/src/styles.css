@@ -14,3 +14,52 @@ body,
 * {
   box-sizing: border-box;
 }
+.auth-page {
+  min-height: 100%;
+  display: grid;
+  place-items: center;
+  padding: 24px 0;
+  background: linear-gradient(135deg, #eef2ff, #f8fafc 55%, #ecfeff);
+}
+
+.auth-card {
+  width: min(440px, calc(100vw - 32px));
+  padding: 32px;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 20px 60px rgba(15, 23, 42, 0.12);
+}
+
+.auth-title {
+  font-size: 30px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.auth-subtitle {
+  margin: 6px 0 24px;
+  color: #64748b;
+}
+
+.auth-submit {
+  width: 100%;
+  margin-top: 8px;
+}
+
+.auth-links {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 16px;
+  font-size: 13px;
+}
+
+.auth-links a {
+  color: #409eff;
+  text-decoration: none;
+}
+
+.auth-message {
+  margin-top: 16px;
+  color: #64748b;
+  line-height: 1.6;
+}

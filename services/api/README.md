@@ -32,8 +32,23 @@ V2__seed_roles_and_permissions.sql
 - `GET /actuator/health`
 - `GET /v3/api-docs`
 - `GET /swagger-ui.html`
-- `POST /api/v1/auth/register`（占位）
-- `POST /api/v1/auth/login`（占位）
+- `POST /api/v1/auth/register`
+- `POST /api/v1/auth/verify-email`
+- `POST /api/v1/auth/resend-verification`
+- `POST /api/v1/auth/login`
+- `POST /api/v1/auth/refresh`
+- `POST /api/v1/auth/logout`
+- `POST /api/v1/auth/logout-all`
+- `POST /api/v1/auth/forgot-password`
+- `POST /api/v1/auth/reset-password`
+- `GET /api/v1/me`
+- `PATCH /api/v1/me`
+- `POST /api/v1/me/change-password`
+- `GET /api/v1/devices`
+- `DELETE /api/v1/devices/{deviceId}`
+- `POST /api/v1/admin/auth/login`
+- `POST /api/v1/admin/auth/refresh`
+- `GET /api/v1/admin/auth/me`
 - `GET /api/v1/sync/status`（占位）
 - `GET /api/v1/admin/ping`（需要 ADMIN 角色）
 

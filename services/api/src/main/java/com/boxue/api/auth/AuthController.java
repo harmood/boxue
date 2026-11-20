@@ -15,6 +15,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.boxue.api.auth.AuthDtos.AccessTokenResponse;
+import com.boxue.api.auth.AuthDtos.EmailRequest;
+import com.boxue.api.auth.AuthDtos.MessageResponse;
+import com.boxue.api.auth.AuthDtos.ResetPasswordRequest;
+import com.boxue.api.auth.AuthDtos.VerifyEmailRequest;
+import com.boxue.api.auth.AuthDtos.VerifyEmailResponse;
 import com.boxue.api.auth.AuthDtos.LoginRequest;
 import com.boxue.api.auth.AuthDtos.RefreshTokenRequest;
 import com.boxue.api.auth.AuthDtos.RegisterRequest;
@@ -99,28 +104,42 @@ public class AuthController {
     }
 
     @PostMapping("/verify-email")
-    public ResponseEntity<Void> verifyEmail() {
-        throw notImplemented("邮箱验证");
+    public ResponseEntity<VerifyEmailResponse> verifyEmail(
+            @Valid @RequestBody VerifyEmailRequest request,
+            @RequestHeader(value = "X-Client-Platform", required = false) String platform,
+            HttpServletRequest httpRequest,
+            HttpServletResponse response) {
+        VerifyEmailResponse result = authService.verifyEmail(request, httpRequest);
+        if ("web".equalsIgnoreCase(platform)) {
+            setRefreshCookie(response, result.refreshToken(), "/api/v1/auth", httpRequest.isSecure());
+            return ResponseEntity.ok(new VerifyEmailResponse(
+                result.user(), result.accessToken(), result.expiresIn(), null));
+        }
+        return ResponseEntity.ok(result);
     }
 
     @PostMapping("/resend-verification")
-    public ResponseEntity<Void> resendVerification() {
-        throw notImplemented("重新发送验证邮件");
+    public ResponseEntity<MessageResponse> resendVerification(
+            @Valid @RequestBody EmailRequest request,
+            HttpServletRequest httpRequest) {
+        return ResponseEntity.status(HttpStatus.ACCEPTED)
+            .body(authService.resendVerification(request, httpRequest));
     }
 
     @PostMapping("/forgot-password")
-    public ResponseEntity<Void> forgotPassword() {
-        throw notImplemented("忘记密码");
+    public ResponseEntity<MessageResponse> forgotPassword(
+            @Valid @RequestBody EmailRequest request,
+            HttpServletRequest httpRequest) {
+        return ResponseEntity.status(HttpStatus.ACCEPTED)
+            .body(authService.forgotPassword(request, httpRequest));
     }
 
     @PostMapping("/reset-password")
-    public ResponseEntity<Void> resetPassword() {
-        throw notImplemented("重置密码");
-    }
-
-    private AuthException notImplemented(String feature) {
-        return new AuthException(HttpStatus.NOT_IMPLEMENTED, "NOT_IMPLEMENTED",
-            feature + "将在后续迭代实现");
+    public ResponseEntity<Void> resetPassword(
+            @Valid @RequestBody ResetPasswordRequest request,
+            HttpServletRequest httpRequest) {
+        authService.resetPassword(request, httpRequest);
+        return ResponseEntity.noContent().build();
     }
 
     private void setRefreshCookie(HttpServletResponse response, String token, String path, boolean secure) {

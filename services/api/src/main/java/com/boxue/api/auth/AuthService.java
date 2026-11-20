@@ -25,6 +25,11 @@ import com.boxue.api.auth.AuthDtos.CurrentUser;
 import com.boxue.api.auth.AuthDtos.DeviceListResponse;
 import com.boxue.api.auth.AuthDtos.DeviceRequest;
 import com.boxue.api.auth.AuthDtos.DeviceResponse;
+import com.boxue.api.auth.AuthDtos.EmailRequest;
+import com.boxue.api.auth.AuthDtos.MessageResponse;
+import com.boxue.api.auth.AuthDtos.ResetPasswordRequest;
+import com.boxue.api.auth.AuthDtos.VerifyEmailRequest;
+import com.boxue.api.auth.AuthDtos.VerifyEmailResponse;
 import com.boxue.api.auth.AuthDtos.LoginRequest;
 import com.boxue.api.auth.AuthDtos.RegisterRequest;
 import com.boxue.api.auth.AuthDtos.RegisterResponse;
@@ -32,6 +37,7 @@ import com.boxue.api.auth.AuthDtos.TokenResponse;
 import com.boxue.api.auth.AuthDtos.UpdateProfileRequest;
 import com.boxue.api.auth.AuthRepository.ProfileRow;
 import com.boxue.api.auth.AuthRepository.SessionRow;
+import com.boxue.api.auth.AuthRepository.TokenRow;
 import com.boxue.api.auth.AuthRepository.UserRow;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -45,25 +51,34 @@ public class AuthService {
     private final JwtService jwtService;
     private final PasswordEncoder passwordEncoder;
     private final AuditService auditService;
+    private final MailService mailService;
     private final boolean requireEmailVerification;
     private final int maxFailedLogins;
     private final long lockoutMinutes;
+    private final long emailVerificationTokenMinutes;
+    private final long passwordResetTokenMinutes;
 
     public AuthService(
             AuthRepository repository,
             JwtService jwtService,
             PasswordEncoder passwordEncoder,
             AuditService auditService,
+            MailService mailService,
             @Value("${boxue.auth.require-email-verification:false}") boolean requireEmailVerification,
             @Value("${boxue.auth.max-failed-logins:5}") int maxFailedLogins,
-            @Value("${boxue.auth.lockout-minutes:15}") long lockoutMinutes) {
+            @Value("${boxue.auth.lockout-minutes:15}") long lockoutMinutes,
+            @Value("${boxue.auth.email-verification-token-minutes:60}") long emailVerificationTokenMinutes,
+            @Value("${boxue.auth.password-reset-token-minutes:30}") long passwordResetTokenMinutes) {
         this.repository = repository;
         this.jwtService = jwtService;
         this.passwordEncoder = passwordEncoder;
         this.auditService = auditService;
+        this.mailService = mailService;
         this.requireEmailVerification = requireEmailVerification;
         this.maxFailedLogins = maxFailedLogins;
         this.lockoutMinutes = lockoutMinutes;
+        this.emailVerificationTokenMinutes = emailVerificationTokenMinutes;
+        this.passwordResetTokenMinutes = passwordResetTokenMinutes;
     }
 
     @Transactional
@@ -92,6 +107,9 @@ public class AuthService {
             !requireEmailVerification);
         repository.insertProfile(userId, displayName);
         repository.assignRole(userId, "USER");
+        if (requireEmailVerification) {
+            createEmailVerification(userId, request.email());
+        }
 
         auditService.log(userId, "USER_REGISTERED", "USER", userId.toString(),
             java.util.Map.of("email", request.email(), "username", request.username()), httpRequest);
@@ -274,6 +292,106 @@ public class AuthService {
         return new AdminMe(user.id(), user.email(), user.username(),
             profileDisplayName(user.id(), user.username()), roles,
             repository.findPermissions(userId));
+    }
+
+    @Transactional
+    public MessageResponse resendVerification(EmailRequest request, HttpServletRequest httpRequest) {
+        repository.findByLogin(request.email())
+            .filter(user -> "PENDING_VERIFICATION".equals(user.status()) && user.emailVerifiedAt() == null)
+            .ifPresent(user -> {
+                createEmailVerification(user.id(), user.email());
+                auditService.log(user.id(), "EMAIL_VERIFICATION_RESENT", "USER", user.id().toString(),
+                    java.util.Map.of("email", user.email()), httpRequest);
+            });
+        return new MessageResponse("如果该邮箱存在，验证邮件将发送");
+    }
+
+    @Transactional
+    public VerifyEmailResponse verifyEmail(VerifyEmailRequest request, HttpServletRequest httpRequest) {
+        TokenRow token = repository.findEmailVerificationByHash(jwtService.hashRefreshToken(request.token()))
+            .orElseThrow(() -> new AuthException(HttpStatus.BAD_REQUEST, "AUTH_VERIFICATION_TOKEN_INVALID",
+                "验证链接无效"));
+        if (token.consumedAt() != null || !token.expiresAt().isAfter(Instant.now())) {
+            throw new AuthException(HttpStatus.BAD_REQUEST, "AUTH_VERIFICATION_TOKEN_EXPIRED",
+                "验证链接已失效");
+        }
+
+        repository.consumeEmailVerification(token.id());
+        repository.markEmailVerified(token.userId());
+
+        UserRow user = repository.findById(token.userId())
+            .orElseThrow(() -> new AuthException(HttpStatus.BAD_REQUEST, "AUTH_VERIFICATION_TOKEN_INVALID",
+                "验证链接无效"));
+        List<String> roles = repository.findRoles(user.id());
+        List<String> permissions = repository.findPermissions(user.id());
+        SessionTokens session = createSession(user, null, "client", roles, permissions, httpRequest);
+
+        auditService.log(user.id(), "EMAIL_VERIFIED", "USER", user.id().toString(),
+            java.util.Map.of("email", user.email()), httpRequest);
+
+        return new VerifyEmailResponse(
+            toAuthUser(user), session.accessToken(), jwtService.accessTtlSeconds(), session.refreshToken());
+    }
+
+    @Transactional
+    public MessageResponse forgotPassword(EmailRequest request, HttpServletRequest httpRequest) {
+        repository.findByLogin(request.email())
+            .filter(user -> !"DISABLED".equals(user.status()) && !"DELETED".equals(user.status()))
+            .ifPresent(user -> {
+                createPasswordReset(user);
+                auditService.log(user.id(), "PASSWORD_RESET_REQUESTED", "USER", user.id().toString(),
+                    java.util.Map.of("email", user.email()), httpRequest);
+            });
+        return new MessageResponse("如果该邮箱存在，重置邮件将发送");
+    }
+
+    @Transactional
+    public void resetPassword(ResetPasswordRequest request, HttpServletRequest httpRequest) {
+        TokenRow token = repository.findPasswordResetByHash(jwtService.hashRefreshToken(request.token()))
+            .orElseThrow(() -> new AuthException(HttpStatus.BAD_REQUEST, "AUTH_RESET_TOKEN_INVALID",
+                "重置链接无效"));
+        if (token.consumedAt() != null || !token.expiresAt().isAfter(Instant.now())) {
+            throw new AuthException(HttpStatus.BAD_REQUEST, "AUTH_RESET_TOKEN_EXPIRED",
+                "重置链接已失效");
+        }
+
+        UserRow user = repository.findById(token.userId())
+            .orElseThrow(() -> new AuthException(HttpStatus.BAD_REQUEST, "AUTH_RESET_TOKEN_INVALID",
+                "重置链接无效"));
+
+        repository.updatePassword(user.id(), passwordEncoder.encode(request.newPassword()));
+        repository.consumePasswordReset(token.id());
+        repository.consumeAllPasswordResets(user.id());
+        repository.revokeAllSessions(user.id());
+
+        auditService.log(user.id(), "PASSWORD_RESET_COMPLETED", "USER", user.id().toString(),
+            java.util.Map.of(), httpRequest);
+    }
+
+    private void createEmailVerification(UUID userId, String email) {
+        String token = jwtService.newRefreshToken();
+        repository.consumeAllEmailVerifications(userId);
+        repository.insertEmailVerification(
+            UUID.randomUUID(), userId, email, jwtService.hashRefreshToken(token),
+            Instant.now().plus(emailVerificationTokenMinutes, ChronoUnit.MINUTES));
+        try {
+            mailService.sendVerificationEmail(email, token);
+        } catch (RuntimeException ex) {
+            log.warn("Failed to send verification email to {}: {}", email, ex.getMessage());
+        }
+    }
+
+    private void createPasswordReset(UserRow user) {
+        String token = jwtService.newRefreshToken();
+        repository.consumeAllPasswordResets(user.id());
+        repository.insertPasswordReset(
+            UUID.randomUUID(), user.id(), jwtService.hashRefreshToken(token),
+            Instant.now().plus(passwordResetTokenMinutes, ChronoUnit.MINUTES));
+        try {
+            mailService.sendPasswordResetEmail(user.email(), token);
+        } catch (RuntimeException ex) {
+            log.warn("Failed to send password reset email to {}: {}", user.email(), ex.getMessage());
+        }
     }
 
     private UserRow authenticate(String login, String password, String requiredRole,

@@ -203,6 +203,10 @@ flutter run
 | `JWT_ACCESS_TTL_SECONDS` | `900` |
 | `JWT_REFRESH_TTL_DAYS` | `30` |
 | `BOXUE_AUTH_REQUIRE_EMAIL_VERIFICATION` | `false` |
+| `BOXUE_AUTH_LOG_DEV_LINKS` | `true`（仅本地） |
+| `BOXUE_WEB_BASE_URL` | `http://localhost:5173` |
+| `MAIL_HOST` / `MAIL_PORT` | `localhost` / `1025`（Mailpit） |
+| `MAIL_FROM` | `no-reply@boxue.local` |
 
 生产环境必须替换所有默认密码与密钥，并启用 HTTPS。
 
@@ -263,6 +267,23 @@ services/api/src/main/resources/db/migration/
 5. 创建 `app_user`、`app_user_profile`、`app_user_role`。
 
 首次登录后必须立即修改初始密码。
+
+### 6.3.1 邮箱验证与密码重置
+
+默认关闭邮箱验证，注册后直接 `ACTIVE`。启用方式：
+
+```powershell
+$env:BOXUE_AUTH_REQUIRE_EMAIL_VERIFICATION = "true"
+```
+
+本地邮件使用 Mailpit：
+
+- SMTP：`localhost:1025`
+- Web：`http://localhost:8025`
+- 验证链接与重置链接指向 `BOXUE_WEB_BASE_URL`
+
+本地开发默认 `BOXUE_AUTH_LOG_DEV_LINKS=true`，邮件链接会同时写入后端日志，便于调试。
+生产环境必须关闭该开关并配置真实 SMTP。
 
 ### 6.4 备份与恢复
 

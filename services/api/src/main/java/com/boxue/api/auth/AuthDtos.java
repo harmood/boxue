@@ -79,6 +79,30 @@ public final class AuthDtos {
     ) {
     }
 
+    public record EmailRequest(
+        @NotBlank @Email @Size(max = 320) String email
+    ) {
+    }
+
+    public record VerifyEmailRequest(
+        @NotBlank @Size(max = 512) String token
+    ) {
+    }
+
+    public record VerifyEmailResponse(
+        AuthUser user,
+        String accessToken,
+        long expiresIn,
+        String refreshToken
+    ) {
+    }
+
+    public record ResetPasswordRequest(
+        @NotBlank @Size(max = 512) String token,
+        @NotBlank @Size(min = 8, max = 128) String newPassword
+    ) {
+    }
+
     public record TokenResponse(
         String accessToken,
         long expiresIn,
