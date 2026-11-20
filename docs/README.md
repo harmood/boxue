@@ -26,6 +26,10 @@
 | 数据库设计 | `services/api/docs/DATABASE-DESIGN.md` | 表、字段、索引、约束、DDL |
 | Flyway 迁移 | `services/api/src/main/resources/db/migration/` | 实际数据库结构 |
 
+### 2.1 参考资料
+
+- [GitHub 参考项目调研](reference-projects.md)
+
 ---
 
 ## 3. 快速导航
