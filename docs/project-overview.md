@@ -733,7 +733,7 @@ ai_provider_config
 - 完整接口说明：`packages/contracts/API-CONTRACT.md`
 - 客户端类型：`packages/sdk/generated/`
 
-当前 `openapi.yaml` 仍只包含 `/health`，详细端点需在 Sprint 1-5 中逐步补齐。
+当前 OpenAPI 已落地 **Auth / User / Admin**；Banks / Questions / Media / Imports / Practice / Review / Sync / AI 待后续迭代补齐。
 
 ---
 

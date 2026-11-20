@@ -1,0 +1,370 @@
+package com.boxue.api.auth;
+
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.List;
+import java.util.UUID;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
+
+import com.boxue.api.auth.AuthDtos.AccessTokenResponse;
+import com.boxue.api.auth.AuthDtos.AdminLoginRequest;
+import com.boxue.api.auth.AuthDtos.AdminMe;
+import com.boxue.api.auth.AuthDtos.AdminSummary;
+import com.boxue.api.auth.AuthDtos.AdminTokenResponse;
+import com.boxue.api.auth.AuthDtos.AuthUser;
+import com.boxue.api.auth.AuthDtos.ChangePasswordRequest;
+import com.boxue.api.auth.AuthDtos.CurrentUser;
+import com.boxue.api.auth.AuthDtos.DeviceListResponse;
+import com.boxue.api.auth.AuthDtos.DeviceRequest;
+import com.boxue.api.auth.AuthDtos.DeviceResponse;
+import com.boxue.api.auth.AuthDtos.LoginRequest;
+import com.boxue.api.auth.AuthDtos.RegisterRequest;
+import com.boxue.api.auth.AuthDtos.RegisterResponse;
+import com.boxue.api.auth.AuthDtos.TokenResponse;
+import com.boxue.api.auth.AuthDtos.UpdateProfileRequest;
+import com.boxue.api.auth.AuthRepository.ProfileRow;
+import com.boxue.api.auth.AuthRepository.SessionRow;
+import com.boxue.api.auth.AuthRepository.UserRow;
+
+import jakarta.servlet.http.HttpServletRequest;
+
+@Service
+public class AuthService {
+
+    private static final Logger log = LoggerFactory.getLogger(AuthService.class);
+
+    private final AuthRepository repository;
+    private final JwtService jwtService;
+    private final PasswordEncoder passwordEncoder;
+    private final AuditService auditService;
+    private final boolean requireEmailVerification;
+    private final int maxFailedLogins;
+    private final long lockoutMinutes;
+
+    public AuthService(
+            AuthRepository repository,
+            JwtService jwtService,
+            PasswordEncoder passwordEncoder,
+            AuditService auditService,
+            @Value("${boxue.auth.require-email-verification:false}") boolean requireEmailVerification,
+            @Value("${boxue.auth.max-failed-logins:5}") int maxFailedLogins,
+            @Value("${boxue.auth.lockout-minutes:15}") long lockoutMinutes) {
+        this.repository = repository;
+        this.jwtService = jwtService;
+        this.passwordEncoder = passwordEncoder;
+        this.auditService = auditService;
+        this.requireEmailVerification = requireEmailVerification;
+        this.maxFailedLogins = maxFailedLogins;
+        this.lockoutMinutes = lockoutMinutes;
+    }
+
+    @Transactional
+    public RegisterResponse register(RegisterRequest request, HttpServletRequest httpRequest) {
+        if (!request.acceptedTerms()) {
+            throw new AuthException(HttpStatus.UNPROCESSABLE_ENTITY, "AUTH_TERMS_NOT_ACCEPTED",
+                "必须接受用户协议");
+        }
+        if (repository.existsByEmailOrUsername(request.email(), request.username())) {
+            throw new AuthException(HttpStatus.CONFLICT, "AUTH_ACCOUNT_EXISTS",
+                "邮箱或用户名已被使用");
+        }
+
+        UUID userId = UUID.randomUUID();
+        String status = requireEmailVerification ? "PENDING_VERIFICATION" : "ACTIVE";
+        String displayName = StringUtils.hasText(request.displayName())
+            ? request.displayName()
+            : request.username();
+
+        repository.insertUser(
+            userId,
+            request.email(),
+            request.username(),
+            passwordEncoder.encode(request.password()),
+            status,
+            !requireEmailVerification);
+        repository.insertProfile(userId, displayName);
+        repository.assignRole(userId, "USER");
+
+        auditService.log(userId, "USER_REGISTERED", "USER", userId.toString(),
+            java.util.Map.of("email", request.email(), "username", request.username()), httpRequest);
+
+        String message = requireEmailVerification
+            ? "注册成功，验证邮件已发送"
+            : "注册成功，请登录";
+
+        return new RegisterResponse(
+            new AuthUser(userId, request.email(), request.username(), displayName, status,
+                !requireEmailVerification),
+            message);
+    }
+
+    @Transactional
+    public LoginResult login(LoginRequest request, HttpServletRequest httpRequest) {
+        UserRow user = authenticate(request.login(), request.password(), null, httpRequest);
+        repository.ensureDevice(user.id(), request.device());
+
+        List<String> roles = repository.findRoles(user.id());
+        List<String> permissions = repository.findPermissions(user.id());
+        SessionTokens tokens = createSession(user, request.device().deviceId(), "client", roles, permissions, httpRequest);
+
+        auditService.log(user.id(), "LOGIN_SUCCEEDED", "USER", user.id().toString(),
+            java.util.Map.of("platform", request.device().platform().name()), httpRequest);
+
+        return new LoginResult(
+            new TokenResponse(
+                tokens.accessToken(),
+                jwtService.accessTtlSeconds(),
+                tokens.refreshToken(),
+                toAuthUser(user),
+                roles,
+                permissions),
+            tokens.refreshToken(),
+            request.device().platform() == DevicePlatform.WEB);
+    }
+
+    @Transactional
+    public AdminLoginResult adminLogin(AdminLoginRequest request, HttpServletRequest httpRequest) {
+        UserRow user = authenticate(request.email(), request.password(), "ADMIN", httpRequest);
+        repository.ensureDevice(user.id(), request.device());
+
+        List<String> roles = repository.findRoles(user.id());
+        List<String> permissions = repository.findPermissions(user.id());
+        SessionTokens tokens = createSession(user, request.device().deviceId(), "admin", roles, permissions, httpRequest);
+
+        auditService.log(user.id(), "ADMIN_LOGIN_SUCCEEDED", "USER", user.id().toString(),
+            java.util.Map.of("platform", request.device().platform().name()), httpRequest);
+
+        return new AdminLoginResult(
+            new AdminTokenResponse(
+                tokens.accessToken(),
+                jwtService.accessTtlSeconds(),
+                tokens.refreshToken(),
+                new AdminSummary(user.id(), user.email(), user.username(),
+                    profileDisplayName(user.id(), user.username())),
+                roles,
+                permissions),
+            tokens.refreshToken());
+    }
+
+    @Transactional
+    public RefreshResult refresh(String rawRefreshToken, String audience, HttpServletRequest httpRequest) {
+        if (!StringUtils.hasText(rawRefreshToken)) {
+            throw new AuthException(HttpStatus.UNAUTHORIZED, "AUTH_REFRESH_REQUIRED", "缺少刷新令牌");
+        }
+        SessionRow session = repository.findSessionByHash(jwtService.hashRefreshToken(rawRefreshToken))
+            .orElseThrow(() -> new AuthException(HttpStatus.UNAUTHORIZED, "AUTH_REFRESH_INVALID",
+                "刷新令牌无效"));
+        if (session.revokedAt() != null || !session.expiresAt().isAfter(Instant.now())) {
+            throw new AuthException(HttpStatus.UNAUTHORIZED, "AUTH_REFRESH_EXPIRED", "刷新令牌已失效");
+        }
+
+        UserRow user = repository.findById(session.userId())
+            .orElseThrow(() -> new AuthException(HttpStatus.UNAUTHORIZED, "AUTH_REFRESH_INVALID",
+                "刷新令牌无效"));
+        if (!"ACTIVE".equals(user.status())) {
+            throw new AuthException(HttpStatus.FORBIDDEN, "AUTH_ACCOUNT_DISABLED", "账号不可用");
+        }
+
+        List<String> roles = repository.findRoles(user.id());
+        List<String> permissions = repository.findPermissions(user.id());
+        if ("admin".equals(audience) && !roles.contains("ADMIN")) {
+            throw new AuthException(HttpStatus.FORBIDDEN, "AUTH_ADMIN_REQUIRED", "需要管理员权限");
+        }
+
+        repository.revokeSession(session.id());
+        SessionTokens tokens = createSession(user, session.deviceId(), audience, roles, permissions, httpRequest);
+
+        auditService.log(user.id(), "TOKEN_REFRESHED", "SESSION", session.id().toString(),
+            java.util.Map.of("audience", audience), httpRequest);
+
+        return new RefreshResult(
+            new AccessTokenResponse(tokens.accessToken(), jwtService.accessTtlSeconds(), tokens.refreshToken()),
+            tokens.refreshToken());
+    }
+
+    @Transactional
+    public void logout(AuthPrincipal principal, HttpServletRequest httpRequest) {
+        if (principal == null) {
+            throw new AuthException(HttpStatus.UNAUTHORIZED, "AUTH_UNAUTHORIZED", "未认证");
+        }
+        repository.revokeSession(principal.sessionId());
+        auditService.log(principal.userId(), "LOGOUT", "SESSION", principal.sessionId().toString(),
+            java.util.Map.of(), httpRequest);
+    }
+
+    @Transactional
+    public void logoutAll(AuthPrincipal principal, HttpServletRequest httpRequest) {
+        if (principal == null) {
+            throw new AuthException(HttpStatus.UNAUTHORIZED, "AUTH_UNAUTHORIZED", "未认证");
+        }
+        repository.revokeAllSessions(principal.userId());
+        auditService.log(principal.userId(), "LOGOUT_ALL", "USER", principal.userId().toString(),
+            java.util.Map.of(), httpRequest);
+    }
+
+    public CurrentUser me(UUID userId) {
+        UserRow user = repository.findById(userId)
+            .orElseThrow(() -> new AuthException(HttpStatus.UNAUTHORIZED, "AUTH_UNAUTHORIZED", "用户不存在"));
+        ProfileRow profile = repository.findProfile(userId).orElse(null);
+        return new CurrentUser(
+            user.id(), user.email(), user.username(),
+            profile == null ? null : profile.displayName(),
+            profile == null ? null : profile.avatarMediaId(),
+            profile == null ? null : profile.bio(),
+            profile == null ? "zh-CN" : profile.locale(),
+            profile == null ? "Asia/Shanghai" : profile.timezone(),
+            user.status(),
+            repository.findRoles(userId),
+            repository.findPermissions(userId),
+            user.emailVerifiedAt() != null);
+    }
+
+    @Transactional
+    public CurrentUser updateProfile(UUID userId, UpdateProfileRequest request) {
+        repository.updateProfile(userId, request);
+        return me(userId);
+    }
+
+    @Transactional
+    public void changePassword(AuthPrincipal principal, ChangePasswordRequest request,
+                               HttpServletRequest httpRequest) {
+        UserRow user = repository.findById(principal.userId())
+            .orElseThrow(() -> new AuthException(HttpStatus.UNAUTHORIZED, "AUTH_UNAUTHORIZED", "用户不存在"));
+        if (!passwordEncoder.matches(request.currentPassword(), user.passwordHash())) {
+            throw new AuthException(HttpStatus.BAD_REQUEST, "AUTH_CURRENT_PASSWORD_INVALID",
+                "当前密码不正确");
+        }
+        repository.updatePassword(user.id(), passwordEncoder.encode(request.newPassword()));
+        if (request.revokeOtherSessions() == null || request.revokeOtherSessions()) {
+            repository.revokeOtherSessions(user.id(), principal.sessionId());
+        }
+        auditService.log(user.id(), "PASSWORD_CHANGED", "USER", user.id().toString(),
+            java.util.Map.of(), httpRequest);
+    }
+
+    public DeviceListResponse listDevices(UUID userId, UUID currentDeviceId) {
+        List<DeviceResponse> items = repository.listDevices(userId).stream()
+            .map(device -> new DeviceResponse(
+                device.id(), device.deviceName(), device.platform(), device.appVersion(),
+                device.lastSeenAt(), device.id().equals(currentDeviceId)))
+            .toList();
+        return new DeviceListResponse(items);
+    }
+
+    @Transactional
+    public void removeDevice(UUID userId, UUID deviceId) {
+        repository.removeDevice(userId, deviceId);
+    }
+
+    public AdminMe adminMe(UUID userId) {
+        UserRow user = repository.findById(userId)
+            .orElseThrow(() -> new AuthException(HttpStatus.UNAUTHORIZED, "AUTH_UNAUTHORIZED", "用户不存在"));
+        List<String> roles = repository.findRoles(userId);
+        if (!roles.contains("ADMIN")) {
+            throw new AuthException(HttpStatus.FORBIDDEN, "AUTH_ADMIN_REQUIRED", "需要管理员权限");
+        }
+        return new AdminMe(user.id(), user.email(), user.username(),
+            profileDisplayName(user.id(), user.username()), roles,
+            repository.findPermissions(userId));
+    }
+
+    private UserRow authenticate(String login, String password, String requiredRole,
+                                 HttpServletRequest httpRequest) {
+        UserRow user = repository.findByLogin(login).orElse(null);
+        if (user == null) {
+            auditService.log(null, "LOGIN_FAILED", "USER", null,
+                java.util.Map.of("login", login, "reason", "USER_NOT_FOUND"), httpRequest);
+            throw new AuthException(HttpStatus.UNAUTHORIZED, "AUTH_INVALID_CREDENTIALS",
+                "邮箱/用户名或密码错误");
+        }
+
+        if (user.lockedUntil() != null && user.lockedUntil().isAfter(Instant.now())) {
+            throw new AuthException(HttpStatus.LOCKED, "AUTH_ACCOUNT_LOCKED", "账号已临时锁定，请稍后再试");
+        }
+        if ("PENDING_VERIFICATION".equals(user.status())) {
+            throw new AuthException(HttpStatus.FORBIDDEN, "AUTH_EMAIL_NOT_VERIFIED", "请先验证邮箱");
+        }
+        if ("DISABLED".equals(user.status()) || "LOCKED".equals(user.status())) {
+            throw new AuthException(HttpStatus.FORBIDDEN, "AUTH_ACCOUNT_DISABLED", "账号不可用");
+        }
+        if (!"ACTIVE".equals(user.status())) {
+            throw new AuthException(HttpStatus.FORBIDDEN, "AUTH_ACCOUNT_DISABLED", "账号不可用");
+        }
+
+        if (!passwordEncoder.matches(password, user.passwordHash())) {
+            int nextCount = user.failedLoginCount() + 1;
+            Instant lockedUntil = nextCount >= maxFailedLogins
+                ? Instant.now().plus(lockoutMinutes, ChronoUnit.MINUTES)
+                : null;
+            repository.recordLoginFailure(user.id(), nextCount, lockedUntil);
+            auditService.log(user.id(), "LOGIN_FAILED", "USER", user.id().toString(),
+                java.util.Map.of("reason", "INVALID_PASSWORD", "failedCount", nextCount), httpRequest);
+            throw new AuthException(HttpStatus.UNAUTHORIZED, "AUTH_INVALID_CREDENTIALS",
+                "邮箱/用户名或密码错误");
+        }
+
+        if (requiredRole != null && !repository.findRoles(user.id()).contains(requiredRole)) {
+            auditService.log(user.id(), "LOGIN_FORBIDDEN", "USER", user.id().toString(),
+                java.util.Map.of("requiredRole", requiredRole), httpRequest);
+            throw new AuthException(HttpStatus.FORBIDDEN, "AUTH_ADMIN_REQUIRED", "需要管理员权限");
+        }
+
+        repository.recordLoginSuccess(user.id());
+        return user;
+    }
+
+    private SessionTokens createSession(UserRow user, UUID deviceId, String audience,
+                                        List<String> roles, List<String> permissions,
+                                        HttpServletRequest httpRequest) {
+        String refreshToken = jwtService.newRefreshToken();
+        UUID sessionId = UUID.randomUUID();
+        Instant expiresAt = Instant.now().plus(jwtService.refreshTtlDays(), ChronoUnit.DAYS);
+        String ip = httpRequest == null ? null : httpRequest.getRemoteAddr();
+        String userAgent = httpRequest == null ? null : httpRequest.getHeader("User-Agent");
+
+        repository.createSession(sessionId, user.id(), deviceId,
+            jwtService.hashRefreshToken(refreshToken), expiresAt, userAgent, ip);
+
+        String accessToken = jwtService.issueAccessToken(
+            user.id(), sessionId, deviceId, audience, roles, permissions);
+
+        return new SessionTokens(accessToken, refreshToken, sessionId);
+    }
+
+    private AuthUser toAuthUser(UserRow user) {
+        return new AuthUser(
+            user.id(),
+            user.email(),
+            user.username(),
+            profileDisplayName(user.id(), user.username()),
+            user.status(),
+            user.emailVerifiedAt() != null);
+    }
+
+    private String profileDisplayName(UUID userId, String fallback) {
+        return repository.findProfile(userId)
+            .map(ProfileRow::displayName)
+            .filter(StringUtils::hasText)
+            .orElse(fallback);
+    }
+
+    public record SessionTokens(String accessToken, String refreshToken, UUID sessionId) {
+    }
+
+    public record LoginResult(TokenResponse response, String refreshToken, boolean webClient) {
+    }
+
+    public record AdminLoginResult(AdminTokenResponse response, String refreshToken) {
+    }
+
+    public record RefreshResult(AccessTokenResponse response, String refreshToken) {
+    }
+}

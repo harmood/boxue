@@ -197,6 +197,12 @@ flutter run
 | `S3_BUCKET` | `boxue-media` |
 | `S3_PATH_STYLE` | `true` |
 | `BOXUE_AI_ENABLED` | `false` |
+| `JWT_ISSUER` | `boxue` |
+| `JWT_CLIENT_SECRET` | 32 字节以上开发密钥 |
+| `JWT_ADMIN_SECRET` | 32 字节以上开发密钥 |
+| `JWT_ACCESS_TTL_SECONDS` | `900` |
+| `JWT_REFRESH_TTL_DAYS` | `30` |
+| `BOXUE_AUTH_REQUIRE_EMAIL_VERIFICATION` | `false` |
 
 生产环境必须替换所有默认密码与密钥，并启用 HTTPS。
 

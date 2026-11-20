@@ -44,6 +44,17 @@ springdoc:
     path: /swagger-ui.html
 
 boxue:
+  security:
+    jwt:
+      issuer: ${JWT_ISSUER:boxue}
+      client-secret: ${JWT_CLIENT_SECRET:dev-client-secret-change-me-32-bytes}
+      admin-secret: ${JWT_ADMIN_SECRET:dev-admin-secret-change-me-32-bytes}
+      access-token-ttl-seconds: ${JWT_ACCESS_TTL_SECONDS:900}
+      refresh-token-ttl-days: ${JWT_REFRESH_TTL_DAYS:30}
+  auth:
+    require-email-verification: ${BOXUE_AUTH_REQUIRE_EMAIL_VERIFICATION:false}
+    max-failed-logins: 5
+    lockout-minutes: 15
   ai:
     enabled: false
   sync:

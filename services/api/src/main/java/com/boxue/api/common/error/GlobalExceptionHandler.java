@@ -5,6 +5,9 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
@@ -12,10 +15,14 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import com.boxue.api.auth.AuthException;
+
 import jakarta.servlet.http.HttpServletRequest;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiError> handleValidation(
@@ -27,6 +34,23 @@ public class GlobalExceptionHandler {
             details.put(error.getField(), error.getDefaultMessage());
         }
         return error(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "请求参数不合法", details, request);
+    }
+
+    @ExceptionHandler(AuthException.class)
+    public ResponseEntity<ApiError> handleAuth(
+        AuthException exception,
+        HttpServletRequest request
+    ) {
+        return error(exception.status(), exception.code(), exception.getMessage(),
+            exception.details(), request);
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ApiError> handleConflict(
+        DataIntegrityViolationException exception,
+        HttpServletRequest request
+    ) {
+        return error(HttpStatus.CONFLICT, "RESOURCE_CONFLICT", "资源冲突或重复", Map.of(), request);
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
@@ -42,6 +66,7 @@ public class GlobalExceptionHandler {
         Exception exception,
         HttpServletRequest request
     ) {
+        log.error("Unhandled exception for {} {}", request.getMethod(), request.getRequestURI(), exception);
         return error(
             HttpStatus.INTERNAL_SERVER_ERROR,
             "INTERNAL_ERROR",

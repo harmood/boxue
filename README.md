@@ -152,6 +152,7 @@ pnpm sdk:gen
 - [API 契约](packages/contracts/API-CONTRACT.md)
 - [数据库设计](services/api/docs/DATABASE-DESIGN.md)
 - [文档索引](docs/README.md)
+- [GitHub 参考项目调研](docs/reference-projects.md)
 
 ## 当前阶段
 
