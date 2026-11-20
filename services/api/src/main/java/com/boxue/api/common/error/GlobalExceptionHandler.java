@@ -15,6 +15,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import com.boxue.api.admin.AdminException;
 import com.boxue.api.auth.AuthException;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -39,6 +40,15 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(AuthException.class)
     public ResponseEntity<ApiError> handleAuth(
         AuthException exception,
+        HttpServletRequest request
+    ) {
+        return error(exception.status(), exception.code(), exception.getMessage(),
+            exception.details(), request);
+    }
+
+    @ExceptionHandler(AdminException.class)
+    public ResponseEntity<ApiError> handleAdmin(
+        AdminException exception,
         HttpServletRequest request
     ) {
         return error(exception.status(), exception.code(), exception.getMessage(),

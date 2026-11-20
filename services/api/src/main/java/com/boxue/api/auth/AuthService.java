@@ -346,6 +346,14 @@ public class AuthService {
     }
 
     @Transactional
+    public MessageResponse triggerPasswordReset(UUID userId, HttpServletRequest httpRequest) {
+        UserRow user = repository.findById(userId)
+            .orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "USER_NOT_FOUND", "用户不存在"));
+        createPasswordReset(user);
+        return new MessageResponse("密码重置邮件已发送");
+    }
+
+    @Transactional
     public void resetPassword(ResetPasswordRequest request, HttpServletRequest httpRequest) {
         TokenRow token = repository.findPasswordResetByHash(jwtService.hashRefreshToken(request.token()))
             .orElseThrow(() -> new AuthException(HttpStatus.BAD_REQUEST, "AUTH_RESET_TOKEN_INVALID",
