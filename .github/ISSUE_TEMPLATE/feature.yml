@@ -1,0 +1,99 @@
+name: 功能需求
+description: 提交一个可进入开发的功能任务（请先满足 Definition of Ready）
+title: "[Feature] "
+labels: ["type:feature"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        请先阅读 `docs/development-workflow.md` 第 5 节（任务准入）。
+        信息不完整的 Issue 会被退回补充。
+
+  - type: textarea
+    id: goal
+    attributes:
+      label: 目标与用户价值
+      description: 一句话说明要解决什么问题，不写技术实现。
+      placeholder: 用户可以在 Web 上创建题库，并在 Android 上继续刷题。
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: 验收标准
+      description: 3–7 条可验证的清单，建议使用 Given/When/Then。
+      placeholder: |
+        - 给定已登录用户，当创建题库并填写名称时，列表立即出现该题库。
+        - 给定离线状态，当创建题目时，恢复网络后自动同步。
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: areas
+    attributes:
+      label: 影响面
+      options:
+        - label: Contract（OpenAPI）
+        - label: API
+        - label: 数据库迁移
+        - label: Web
+        - label: Admin
+        - label: Desktop
+        - label: Android
+        - label: 同步
+        - label: 基础设施 / CI
+
+  - type: dropdown
+    id: contract
+    attributes:
+      label: 是否有契约变更？
+      options:
+        - 无
+        - 有，向后兼容
+        - 有，破坏性变更（需要 /api/v2）
+    validations:
+      required: true
+
+  - type: textarea
+    id: database
+    attributes:
+      label: 数据变更与回滚
+      description: 新增表/列/索引？是否需要回填？如何向前修复？
+      placeholder: 新增 qb_bank.share_flag 可空列，默认 false；无需回填。
+
+  - type: textarea
+    id: sync
+    attributes:
+      label: 同步影响
+      description: 新实体、变更类型、冲突策略、游标影响；不涉及请写“无”。
+
+  - type: textarea
+    id: security
+    attributes:
+      label: 安全与权限
+      description: 涉及哪些权限码？是否涉及 owner 隔离、审计、限流？
+
+  - type: textarea
+    id: tests
+    attributes:
+      label: 测试场景
+      description: 单元 / 集成 / 同步 / E2E 各需要哪些用例。
+
+  - type: textarea
+    id: docs
+    attributes:
+      label: 文档与开关
+      description: 需要更新哪些 docs / ADR？是否需要 feature flag？
+
+  - type: checkboxes
+    id: dor
+    attributes:
+      label: 准入确认
+      options:
+        - label: 验收标准可验证
+          required: true
+        - label: 已确认三端范围（未做的端会建后续 Issue）
+          required: true
+        - label: 已确认契约 / 数据 / 同步影响
+          required: true

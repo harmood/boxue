@@ -1,0 +1,11 @@
+logging:
+  level:
+    com.boxue.api: DEBUG
+    org.springframework.security: INFO
+
+spring:
+  security:
+    user:
+      name: ${BOXUE_ADMIN_USERNAME:admin}
+      password: ${BOXUE_ADMIN_PASSWORD:admin}
+      roles: ADMIN

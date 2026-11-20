@@ -1,0 +1,21 @@
+{
+  "name": "boxue",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@12.21.0",
+  "engines": {
+    "node": ">=22",
+    "pnpm": ">=10"
+  },
+  "scripts": {
+    "dev:web": "pnpm --filter @boxue/web dev",
+    "dev:admin": "pnpm --filter @boxue/admin dev",
+    "dev:desktop": "pnpm --filter @boxue/desktop dev",
+    "build": "pnpm build:web && pnpm build:admin && pnpm build:desktop",
+    "build:web": "pnpm --filter @boxue/web build",
+    "build:admin": "pnpm --filter @boxue/admin build",
+    "build:desktop": "pnpm --filter @boxue/desktop build",
+    "typecheck": "pnpm -r typecheck",
+    "check": "pnpm typecheck"
+  }
+}

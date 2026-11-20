@@ -1,0 +1,71 @@
+openapi: 3.1.0
+info:
+  title: 博学 API
+  version: 0.1.0
+  description: |
+    博学多端学习平台 API 契约骨架。
+    完整设计见 docs/api-contract.md。
+servers:
+  - url: http://localhost:8080/api/v1
+    description: 本地开发
+tags:
+  - name: Auth
+  - name: User
+  - name: Admin
+  - name: Banks
+  - name: Questions
+  - name: Media
+  - name: Imports
+  - name: Practice
+  - name: Review
+  - name: Sync
+  - name: AI
+paths:
+  /health:
+    get:
+      tags: [Health]
+      summary: 服务健康检查
+      operationId: health
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    adminBearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    ApiError:
+      type: object
+      required: [code, message, traceId, timestamp]
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        details:
+          type: object
+          additionalProperties: true
+        traceId:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+    PageMeta:
+      type: object
+      properties:
+        nextCursor:
+          type: string
+          nullable: true
+        hasMore:
+          type: boolean

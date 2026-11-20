@@ -1,0 +1,61 @@
+name: boxue
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: boxue-postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-boxue}
+      POSTGRES_USER: ${POSTGRES_USER:-boxue}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-boxue_dev_password}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - boxue-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: boxue-redis
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - boxue-redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  minio:
+    image: minio/minio:latest
+    container_name: boxue-minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-boxue}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-boxue_dev_minio}
+    ports:
+      - "${MINIO_API_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+    volumes:
+      - boxue-minio-data:/data
+    restart: unless-stopped
+
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: boxue-mailpit
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+    restart: unless-stopped
+
+volumes:
+  boxue-postgres-data:
+  boxue-redis-data:
+  boxue-minio-data:

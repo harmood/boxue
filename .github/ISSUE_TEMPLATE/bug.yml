@@ -1,0 +1,84 @@
+name: 缺陷报告
+description: 报告一个可复现的缺陷
+title: "[Bug] "
+labels: ["type:bug"]
+body:
+  - type: dropdown
+    id: area
+    attributes:
+      label: 影响模块
+      options:
+        - API
+        - Web
+        - Admin
+        - Desktop
+        - Android
+        - 同步
+        - 数据库/迁移
+        - 基础设施/CI
+        - 文档
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: 版本 / 提交
+      description: 标签、commit 或安装包版本。
+      placeholder: v0.1.0 / a1b2c3d
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: 复现步骤
+      placeholder: |
+        1. 使用 USER 角色登录
+        2. 创建题库
+        3. 断网后编辑题目
+        4. 恢复网络
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: 期望行为
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: 实际行为
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: 日志 / 截图 / 请求 ID
+      description: 请先脱敏，不要粘贴密码、Token 或完整题干。
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: 严重程度
+      options:
+        - P0：数据丢失 / 安全 / 全站不可用
+        - P1：核心流程受阻
+        - P2：一般功能异常
+        - P3：体验问题
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: 提交前确认
+      options:
+        - label: 已搜索现有 Issue，未重复
+          required: true
+        - label: 已移除敏感信息
+          required: true

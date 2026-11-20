@@ -1,0 +1,15 @@
+packages:
+  - apps/web
+  - apps/admin
+  - apps/desktop
+  - packages/*
+
+allowBuilds:
+  electron: true
+  esbuild: true
+  vue-demi: true
+
+onlyBuiltDependencies:
+  - electron
+  - esbuild
+  - vue-demi

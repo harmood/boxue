@@ -1,0 +1,1 @@
+export { default as BoxueBrand } from './components/BoxueBrand.vue'

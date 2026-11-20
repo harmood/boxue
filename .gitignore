@@ -1,0 +1,67 @@
+# OS
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# IDE
+.idea/
+*.iml
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+
+# Env
+.env
+.env.*
+!.env.example
+
+# Node
+node_modules/
+.pnpm-store/
+dist/
+out/
+*.tsbuildinfo
+npm-debug.log*
+pnpm-debug.log*
+
+# Java / Maven
+target/
+*.class
+*.jar
+*.war
+*.ear
+
+# Gradle / Android
+.gradle/
+build/
+local.properties
+*.keystore
+*.jks
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Flutter / Dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+*.lock
+!pubspec.lock
+
+# Electron
+release/
+apps/desktop/release/
+apps/desktop/out/
+
+# Logs / temp
+*.log
+tmp/
+temp/
+.cache/
+
+# Generated
+packages/sdk/generated/
+packages/contracts/generated/
