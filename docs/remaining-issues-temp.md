@@ -8,7 +8,7 @@
 | --- | --- | --- |
 | 1 | 登录限流与防暴力破解（原“管理员 2FA、登录限流、CSRF”拆分出的第一项） | 已修复 |
 | 2 | 管理员 TOTP 2FA（含 TOTP 字段真正校验） | 已修复 |
-| 3 | CSRF Token / Cookie 刷新接口防护 | 待修复 |
+| 3 | CSRF Token / Cookie 刷新接口防护 | 已修复 |
 | 4 | 同步模块第一条完整链路；题库创建/更新 UPSERT 变更 | 待修复 |
 | 5 | 题目列表 N+1 查询（媒体、标签、知识点批量加载） | 待修复 |
 | 6 | 图片压缩、EXIF 剥离、SVG 兜底 | 待修复 |
@@ -33,6 +33,15 @@
 - 关闭 2FA 需要当前密码 + 动态验证码
 - 启用/关闭 2FA 会撤销其他会话
 - 当前未启用 2FA 的管理员仍可登录，但控制台会提示尽快启用；生产环境建议配合后续“强制 2FA”开关
+
+## 第 3 项说明
+
+- Web 端登录/刷新/邮箱验证会写入 `boxue_csrf` Cookie
+- 管理端使用独立 `boxue_admin_csrf` Cookie
+- Cookie 刷新必须发送 `X-CSRF-Token`，服务端校验双提交值
+- 原生客户端通过请求体 refresh token 刷新时不需要 CSRF
+- 刷新成功会轮换 CSRF Token
+- 新增 `GET /api/v1/auth/csrf` 与 `GET /api/v1/admin/auth/csrf` 引导接口
 
 ## 说明
 

@@ -194,6 +194,11 @@ public final class AuthDtos {
     ) {
     }
 
+    public record CsrfTokenResponse(
+        String csrfToken
+    ) {
+    }
+
     public record TotpStatusResponse(
         boolean enabled,
         Instant confirmedAt

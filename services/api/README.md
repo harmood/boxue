@@ -40,6 +40,7 @@ V5__admin_totp.sql
 - `POST /api/v1/auth/verify-email`
 - `POST /api/v1/auth/resend-verification`
 - `POST /api/v1/auth/login`
+- `GET /api/v1/auth/csrf`
 - `POST /api/v1/auth/refresh`
 - `POST /api/v1/auth/logout`
 - `POST /api/v1/auth/logout-all`
@@ -51,6 +52,7 @@ V5__admin_totp.sql
 - `GET /api/v1/devices`
 - `DELETE /api/v1/devices/{deviceId}`
 - `POST /api/v1/admin/auth/login`
+- `GET /api/v1/admin/auth/csrf`
 - `POST /api/v1/admin/auth/refresh`
 - `GET /api/v1/admin/auth/me`
 - `GET /api/v1/admin/auth/totp/status` / `POST /api/v1/admin/auth/totp/setup|enable|disable`

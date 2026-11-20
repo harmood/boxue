@@ -167,6 +167,20 @@ paths:
         "429":
           $ref: "#/components/responses/TooManyRequests"
 
+  /auth/csrf:
+    get:
+      tags: [Auth]
+      summary: 获取 Web CSRF Token
+      operationId: getCsrfToken
+      security: []
+      responses:
+        "200":
+          description: CSRF Token，同时写入 boxue_csrf Cookie
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CsrfTokenResponse"
+
   /auth/refresh:
     post:
       tags: [Auth]
@@ -175,6 +189,7 @@ paths:
       security: []
       parameters:
         - $ref: "#/components/parameters/XClientPlatform"
+        - $ref: "#/components/parameters/CsrfToken"
       requestBody:
         required: false
         content:
@@ -494,12 +509,28 @@ paths:
         "403":
           $ref: "#/components/responses/Forbidden"
 
+  /admin/auth/csrf:
+    get:
+      tags: [Admin]
+      summary: 获取管理端 CSRF Token
+      operationId: getAdminCsrfToken
+      security: []
+      responses:
+        "200":
+          description: CSRF Token，同时写入 boxue_admin_csrf Cookie
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CsrfTokenResponse"
+
   /admin/auth/refresh:
     post:
       tags: [Admin]
       summary: 管理员刷新 Token
       operationId: adminRefreshToken
       security: []
+      parameters:
+        - $ref: "#/components/parameters/CsrfToken"
       requestBody:
         required: false
         content:
@@ -1719,6 +1750,14 @@ components:
       schema:
         type: string
         format: uuid
+    CsrfToken:
+      name: X-CSRF-Token
+      in: header
+      required: false
+      description: 使用 Cookie 刷新时必须与 CSRF Cookie 匹配
+      schema:
+        type: string
+        maxLength: 200
     MediaIdPath:
       name: mediaId
       in: path
@@ -1788,6 +1827,14 @@ components:
             $ref: "#/components/schemas/ApiError"
 
   schemas:
+    CsrfTokenResponse:
+      type: object
+      required: [csrfToken]
+      additionalProperties: false
+      properties:
+        csrfToken:
+          type: string
+
     MediaView:
       type: object
       required: [id, sha256, mimeType, sizeBytes, url, deduped, createdAt]

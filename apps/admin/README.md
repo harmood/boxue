@@ -28,6 +28,7 @@ pnpm dev:admin
 
 - 管理员独立登录与 Token Audience
 - TOTP 两步验证：扫码绑定、启用/关闭、登录动态验证码
+- Cookie 刷新使用 `boxue_admin_csrf` 双提交 CSRF Token
 - Access Token + HttpOnly Refresh Token
 - 401 自动刷新并重试
 - 路由守卫恢复会话

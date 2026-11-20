@@ -31,6 +31,7 @@ pnpm dev:web
 
 - Access Token 存在 `sessionStorage`
 - Refresh Token 由后端写入 HttpOnly Cookie
+- 刷新时使用 `boxue_csrf` 双提交 Cookie + `X-CSRF-Token`
 - 401 时自动尝试刷新 Access Token 并重试一次
 - 路由守卫在进入受保护页面前恢复会话
 

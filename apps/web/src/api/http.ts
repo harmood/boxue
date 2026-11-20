@@ -41,18 +41,50 @@ export function setAccessToken(token: string | null) {
   }
 }
 
+function readCookie(name: string): string | null {
+  const prefix = name + '='
+  for (const item of document.cookie.split(';')) {
+    const value = item.trim()
+    if (value.startsWith(prefix)) {
+      return decodeURIComponent(value.substring(prefix.length))
+    }
+  }
+  return null
+}
+
+async function ensureCsrfToken(): Promise<string | null> {
+  const existing = readCookie('boxue_csrf')
+  if (existing) {
+    return existing
+  }
+  const response = await fetch(`${baseUrl}/auth/csrf`, {
+    method: 'GET',
+    credentials: 'include'
+  })
+  if (!response.ok) {
+    return null
+  }
+  const data = (await response.json()) as { csrfToken?: string }
+  return data.csrfToken ?? readCookie('boxue_csrf')
+}
+
 let refreshPromise: Promise<boolean> | null = null
 
 async function refreshAccessToken(): Promise<boolean> {
   if (!refreshPromise) {
     refreshPromise = (async () => {
+      const csrfToken = await ensureCsrfToken()
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'X-Client-Platform': 'web'
+      }
+      if (csrfToken) {
+        headers['X-CSRF-Token'] = csrfToken
+      }
       const response = await fetch(`${baseUrl}/auth/refresh`, {
         method: 'POST',
         credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Client-Platform': 'web'
-        },
+        headers,
         body: '{}'
       })
       if (!response.ok) {

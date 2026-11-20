@@ -32,18 +32,50 @@ export function setAdminAccessToken(token: string | null) {
   }
 }
 
+function readCookie(name: string): string | null {
+  const prefix = name + '='
+  for (const item of document.cookie.split(';')) {
+    const value = item.trim()
+    if (value.startsWith(prefix)) {
+      return decodeURIComponent(value.substring(prefix.length))
+    }
+  }
+  return null
+}
+
+async function ensureAdminCsrfToken(): Promise<string | null> {
+  const existing = readCookie('boxue_admin_csrf')
+  if (existing) {
+    return existing
+  }
+  const response = await fetch(`${baseUrl}/admin/auth/csrf`, {
+    method: 'GET',
+    credentials: 'include'
+  })
+  if (!response.ok) {
+    return null
+  }
+  const data = (await response.json()) as { csrfToken?: string }
+  return data.csrfToken ?? readCookie('boxue_admin_csrf')
+}
+
 let refreshPromise: Promise<boolean> | null = null
 
 async function refreshAdminToken(): Promise<boolean> {
   if (!refreshPromise) {
     refreshPromise = (async () => {
+      const csrfToken = await ensureAdminCsrfToken()
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'X-Client-Platform': 'admin'
+      }
+      if (csrfToken) {
+        headers['X-CSRF-Token'] = csrfToken
+      }
       const response = await fetch(`${baseUrl}/admin/auth/refresh`, {
         method: 'POST',
         credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Client-Platform': 'admin'
-        },
+        headers,
         body: '{}'
       })
       if (!response.ok) {

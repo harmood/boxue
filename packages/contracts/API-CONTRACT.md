@@ -184,7 +184,17 @@ Retry-After: <seconds>
 
 登录接口当前按“IP + 账号”固定窗口限流，普通登录与管理端登录分别计数；超限返回 `AUTH_RATE_LIMITED`。
 
-### 2.10 状态码
+### 2.10 CSRF 防护
+
+Web 端使用 HttpOnly Refresh Cookie 时，刷新接口采用双提交 Cookie：
+
+- `GET /api/v1/auth/csrf` 或 `GET /api/v1/admin/auth/csrf` 获取 CSRF Token
+- 服务端同时写入非 HttpOnly Cookie：`boxue_csrf` / `boxue_admin_csrf`
+- 刷新时必须发送 `X-CSRF-Token`，且与 Cookie 值一致
+- 不一致或缺失返回 `403 AUTH_CSRF_INVALID`
+- 原生客户端通过请求体传 refresh token 时不需要 CSRF Token
+
+### 2.11 状态码
 
 | 状态码 | 用途 |
 | --- | --- |
@@ -231,6 +241,9 @@ Retry-After: <seconds>
 | `NOT_FOUND` | 404 | 资源不存在 |
 | `CONFLICT` | 409 | 通用冲突 |
 | `AUTH_RATE_LIMITED` | 429 | 登录尝试过多 |
+| `AUTH_CSRF_INVALID` | 403 | CSRF Token 缺失或不匹配 |
+| `AUTH_TOTP_REQUIRED` | 401 | 管理员登录需要 TOTP |
+| `AUTH_TOTP_INVALID` | 401 | 管理员 TOTP 验证码错误 |
 | `INTERNAL_ERROR` | 500 | 服务端错误 |
 
 ### 3.2 账号错误码
@@ -700,6 +713,7 @@ POST /api/v1/admin/auth/login
 ### 6.2 管理员刷新/退出
 
 ```http
+POST /api/v1/admin/auth/csrf
 POST /api/v1/admin/auth/refresh
 POST /api/v1/admin/auth/logout
 POST /api/v1/admin/auth/logout-all
