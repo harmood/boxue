@@ -396,6 +396,104 @@ paths:
         "429":
           $ref: "#/components/responses/TooManyRequests"
 
+  /admin/auth/totp/status:
+    get:
+      tags: [Admin]
+      summary: 查询管理员 TOTP 状态
+      operationId: adminTotpStatus
+      security:
+        - adminBearerAuth: []
+      responses:
+        "200":
+          description: TOTP 状态
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TotpStatus"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /admin/auth/totp/setup:
+    post:
+      tags: [Admin]
+      summary: 生成管理员 TOTP 密钥
+      operationId: adminTotpSetup
+      security:
+        - adminBearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TotpSetupRequest"
+      responses:
+        "200":
+          description: TOTP 密钥与 otpauth URI
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TotpSetup"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /admin/auth/totp/enable:
+    post:
+      tags: [Admin]
+      summary: 验证并启用管理员 TOTP
+      operationId: adminTotpEnable
+      security:
+        - adminBearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TotpCodeRequest"
+      responses:
+        "200":
+          description: 启用后的 TOTP 状态
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TotpStatus"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /admin/auth/totp/disable:
+    post:
+      tags: [Admin]
+      summary: 关闭管理员 TOTP
+      operationId: adminTotpDisable
+      security:
+        - adminBearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TotpDisableRequest"
+      responses:
+        "204":
+          description: 已关闭
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
   /admin/auth/refresh:
     post:
       tags: [Admin]
@@ -2607,9 +2705,60 @@ components:
         displayName:
           type: [string, "null"]
 
+    TotpStatus:
+      type: object
+      required: [enabled]
+      additionalProperties: false
+      properties:
+        enabled:
+          type: boolean
+        confirmedAt:
+          type: [string, "null"]
+          format: date-time
+
+    TotpSetupRequest:
+      type: object
+      required: [password]
+      additionalProperties: false
+      properties:
+        password:
+          type: string
+          maxLength: 128
+
+    TotpSetup:
+      type: object
+      required: [secret, otpauthUri]
+      additionalProperties: false
+      properties:
+        secret:
+          type: string
+        otpauthUri:
+          type: string
+
+    TotpCodeRequest:
+      type: object
+      required: [code]
+      additionalProperties: false
+      properties:
+        code:
+          type: string
+          pattern: "^[0-9]{6}$"
+
+    TotpDisableRequest:
+      type: object
+      required: [password, code]
+      additionalProperties: false
+      properties:
+        password:
+          type: string
+          maxLength: 128
+        code:
+          type: string
+          pattern: "^[0-9]{6}$"
+
     AdminTokenResponse:
       type: object
-      required: [accessToken, expiresIn, admin, roles, permissions]
+      required: [accessToken, expiresIn, totpEnabled, admin, roles, permissions]
       additionalProperties: false
       properties:
         accessToken:
@@ -2619,6 +2768,8 @@ components:
           minimum: 1
         refreshToken:
           type: [string, "null"]
+        totpEnabled:
+          type: boolean
         admin:
           $ref: "#/components/schemas/AdminSummary"
         roles:
@@ -2632,7 +2783,7 @@ components:
 
     AdminMe:
       type: object
-      required: [id, email, username, roles, permissions]
+      required: [id, email, username, totpEnabled, roles, permissions]
       additionalProperties: false
       properties:
         id:
@@ -2645,6 +2796,8 @@ components:
           type: string
         displayName:
           type: [string, "null"]
+        totpEnabled:
+          type: boolean
         roles:
           type: array
           items:

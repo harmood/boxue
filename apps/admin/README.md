@@ -22,10 +22,12 @@ pnpm dev:admin
 - `/questions` 题目管理（只读）
 - `/roles` 角色权限
 - `/audit-logs` 审计日志
+- `/security` 安全设置（TOTP 2FA）
 
 ## 已接入能力
 
 - 管理员独立登录与 Token Audience
+- TOTP 两步验证：扫码绑定、启用/关闭、登录动态验证码
 - Access Token + HttpOnly Refresh Token
 - 401 自动刷新并重试
 - 路由守卫恢复会话

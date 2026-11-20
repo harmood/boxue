@@ -674,6 +674,7 @@ POST /api/v1/admin/auth/login
 {
   "accessToken": "jwt...",
   "expiresIn": 900,
+  "totpEnabled": true,
   "admin": {
     "id": "admin-uuid",
     "displayName": "Admin"
@@ -691,7 +692,7 @@ POST /api/v1/admin/auth/login
 要求：
 
 - 仅 `ADMIN` 角色可登录
-- 强制 2FA
+- 启用 TOTP 后登录必须携带动态验证码；未启用时允许登录并在控制台提示设置
 - 独立 Token Audience
 - 可选 IP 白名单
 - 登录限流
@@ -704,6 +705,21 @@ POST /api/v1/admin/auth/logout
 POST /api/v1/admin/auth/logout-all
 GET  /api/v1/admin/auth/me
 ```
+
+### 6.3 管理员 TOTP 2FA
+
+```http
+GET  /api/v1/admin/auth/totp/status
+POST /api/v1/admin/auth/totp/setup
+POST /api/v1/admin/auth/totp/enable
+POST /api/v1/admin/auth/totp/disable
+```
+
+- `setup` 请求体：`{"password":"..."}`，返回 Base32 密钥与 `otpauth://` URI，密钥用 AES-GCM 加密存储
+- `enable` 请求体：`{"code":"123456"}`
+- `disable` 请求体：`{"password":"...","code":"123456"}`
+- 启用后登录缺少验证码返回 `401 AUTH_TOTP_REQUIRED`，验证码错误返回 `401 AUTH_TOTP_INVALID`
+- 启用/关闭 2FA 会撤销当前管理员的其他会话
 
 ---
 

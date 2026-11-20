@@ -211,6 +211,7 @@ flutter run
 | `AUTH_LOGIN_PER_ACCOUNT` | `10` |
 | `AUTH_ADMIN_LOGIN_PER_IP` | `10` |
 | `AUTH_ADMIN_LOGIN_PER_ACCOUNT` | `5` |
+| `BOXUE_TOTP_SECRET_KEY` | 生产必须配置的 AES 密钥材料；开发留空时回退到 JWT Admin Secret 派生 |
 | `BOXUE_WEB_BASE_URL` | `http://localhost:5173` |
 | `MAIL_HOST` / `MAIL_PORT` | `localhost` / `1025`（Mailpit） |
 | `MAIL_FROM` | `no-reply@boxue.local` |
@@ -248,7 +249,8 @@ services/api/src/main/resources/db/migration/
 ├─ V1__init_schema.sql
 ├─ V2__seed_roles_and_permissions.sql
 ├─ V3__question_media.sql
-└─ V4__session_audience.sql
+├─ V4__session_audience.sql
+└─ V5__admin_totp.sql
 ```
 
 规则：

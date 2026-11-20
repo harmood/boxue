@@ -54,6 +54,7 @@ public class AuthService {
     private final AuditService auditService;
     private final MailService mailService;
     private final LoginRateLimiter loginRateLimiter;
+    private final TotpService totpService;
     private final boolean requireEmailVerification;
     private final int maxFailedLogins;
     private final long lockoutMinutes;
@@ -67,6 +68,7 @@ public class AuthService {
             AuditService auditService,
             MailService mailService,
             LoginRateLimiter loginRateLimiter,
+            TotpService totpService,
             @Value("${boxue.auth.require-email-verification:false}") boolean requireEmailVerification,
             @Value("${boxue.auth.max-failed-logins:5}") int maxFailedLogins,
             @Value("${boxue.auth.lockout-minutes:15}") long lockoutMinutes,
@@ -78,6 +80,7 @@ public class AuthService {
         this.auditService = auditService;
         this.mailService = mailService;
         this.loginRateLimiter = loginRateLimiter;
+        this.totpService = totpService;
         this.requireEmailVerification = requireEmailVerification;
         this.maxFailedLogins = maxFailedLogins;
         this.lockoutMinutes = lockoutMinutes;
@@ -160,6 +163,13 @@ public class AuthService {
     public AdminLoginResult adminLogin(AdminLoginRequest request, HttpServletRequest httpRequest) {
         loginRateLimiter.checkAdminLogin(clientIp(httpRequest), request.email());
         UserRow user = authenticate(request.email().trim(), request.password(), "ADMIN", httpRequest);
+        boolean totpEnabled = totpService.isEnabled(user.id());
+        if (totpEnabled && !totpService.verifyLogin(user.id(), request.totpCode())) {
+            if (!StringUtils.hasText(request.totpCode())) {
+                throw new AuthException(HttpStatus.UNAUTHORIZED, "AUTH_TOTP_REQUIRED", "请输入动态验证码");
+            }
+            throw new AuthException(HttpStatus.UNAUTHORIZED, "AUTH_TOTP_INVALID", "动态验证码不正确");
+        }
         loginRateLimiter.resetAdminAccount(request.email());
         repository.ensureDevice(user.id(), request.device());
 
@@ -175,6 +185,7 @@ public class AuthService {
                 tokens.accessToken(),
                 jwtService.accessTtlSeconds(),
                 tokens.refreshToken(),
+                totpEnabled,
                 new AdminSummary(user.id(), user.email(), user.username(),
                     profileDisplayName(user.id(), user.username())),
                 roles,
@@ -308,7 +319,7 @@ public class AuthService {
             throw new AuthException(HttpStatus.FORBIDDEN, "AUTH_ADMIN_REQUIRED", "需要管理员权限");
         }
         return new AdminMe(user.id(), user.email(), user.username(),
-            profileDisplayName(user.id(), user.username()), roles,
+            profileDisplayName(user.id(), user.username()), totpService.isEnabled(userId), roles,
             repository.findPermissions(userId));
     }
 

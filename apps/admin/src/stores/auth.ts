@@ -7,6 +7,7 @@ export interface AdminProfile {
   email: string
   username: string
   displayName: string | null
+  totpEnabled: boolean
   roles: string[]
   permissions: string[]
 }
@@ -14,6 +15,7 @@ export interface AdminProfile {
 interface AdminLoginResponse {
   accessToken: string
   expiresIn: number
+  totpEnabled: boolean
   admin: {
     id: string
     email: string
@@ -63,6 +65,7 @@ export const useAdminAuthStore = defineStore('adminAuth', () => {
     setToken(data.accessToken)
     admin.value = {
       ...data.admin,
+      totpEnabled: data.totpEnabled,
       roles: data.roles,
       permissions: data.permissions
     }
@@ -101,6 +104,11 @@ export const useAdminAuthStore = defineStore('adminAuth', () => {
     }
   }
 
+  async function refreshProfile() {
+    admin.value = await adminFetch<AdminProfile>('/admin/auth/me')
+    return admin.value
+  }
+
   function hasPermission(code: string) {
     return admin.value?.permissions.includes(code) ?? false
   }
@@ -113,6 +121,7 @@ export const useAdminAuthStore = defineStore('adminAuth', () => {
     setToken,
     login,
     restore,
+    refreshProfile,
     logout,
     hasPermission
   }

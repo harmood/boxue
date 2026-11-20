@@ -3,12 +3,14 @@ import { reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { useAdminAuthStore } from '../stores/auth'
+import { AdminApiError } from '../api/http'
 
 const route = useRoute()
 const router = useRouter()
 const auth = useAdminAuthStore()
 const loading = ref(false)
 const form = reactive({ email: '', password: '', totpCode: '' })
+const requiresTotp = ref(false)
 
 async function submit() {
   if (!form.email || !form.password) {
@@ -22,7 +24,15 @@ async function submit() {
     const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : '/dashboard'
     router.replace(redirect)
   } catch (error) {
-    ElMessage.error(error instanceof Error ? error.message : '登录失败')
+    if (error instanceof AdminApiError && error.code === 'AUTH_TOTP_REQUIRED') {
+      requiresTotp.value = true
+      ElMessage.warning('该账号已启用 2FA，请输入动态验证码后重试')
+    } else if (error instanceof AdminApiError && error.code === 'AUTH_TOTP_INVALID') {
+      requiresTotp.value = true
+      ElMessage.error('动态验证码不正确')
+    } else {
+      ElMessage.error(error instanceof Error ? error.message : '登录失败')
+    }
   } finally {
     loading.value = false
   }
@@ -47,8 +57,8 @@ async function submit() {
             @keyup.enter="submit"
           />
         </el-form-item>
-        <el-form-item label="2FA 验证码（可选）">
-          <el-input v-model="form.totpCode" maxlength="6" placeholder="当前未强制启用" />
+        <el-form-item :label="requiresTotp ? '2FA 验证码' : '2FA 验证码（已启用时必填）'">
+          <el-input v-model="form.totpCode" maxlength="6" :placeholder="requiresTotp ? '请输入 6 位动态验证码' : '未启用 2FA 可留空'" />
         </el-form-item>
         <el-button type="primary" :loading="loading" class="submit" @click="submit">登录</el-button>
       </el-form>

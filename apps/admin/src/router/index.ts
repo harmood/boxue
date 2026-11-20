@@ -5,6 +5,7 @@ import DashboardView from '../views/DashboardView.vue'
 import UsersView from '../views/UsersView.vue'
 import BanksView from '../views/BanksView.vue'
 import QuestionsView from '../views/QuestionsView.vue'
+import SecurityView from '../views/SecurityView.vue'
 import RolesView from '../views/RolesView.vue'
 import AuditLogsView from '../views/AuditLogsView.vue'
 import { useAdminAuthStore } from '../stores/auth'
@@ -23,7 +24,8 @@ const router = createRouter({
         { path: 'banks', name: 'banks', component: BanksView },
         { path: 'questions', name: 'questions', component: QuestionsView },
         { path: 'roles', name: 'roles', component: RolesView },
-        { path: 'audit-logs', name: 'audit-logs', component: AuditLogsView }
+        { path: 'audit-logs', name: 'audit-logs', component: AuditLogsView },
+        { path: 'security', name: 'security', component: SecurityView }
       ]
     }
   ]

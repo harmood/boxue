@@ -43,7 +43,7 @@ public class AdminAuthController {
         setRefreshCookie(response, result.refreshToken(), httpRequest.isSecure());
         AdminTokenResponse body = result.response();
         return ResponseEntity.ok(new AdminTokenResponse(
-            body.accessToken(), body.expiresIn(), null, body.admin(), body.roles(), body.permissions()));
+            body.accessToken(), body.expiresIn(), null, body.totpEnabled(), body.admin(), body.roles(), body.permissions()));
     }
 
     @PostMapping("/refresh")

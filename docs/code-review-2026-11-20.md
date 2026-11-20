@@ -73,7 +73,7 @@
 
 ## 尚未修复 / 已知限制
 
-- 管理端 2FA、CSRF Token 仍未实现；TOTP 字段目前只校验格式。
+- CSRF Token 仍未实现；管理员 TOTP 2FA 已于后续修复。
 - 登录限流已于后续修复（按 IP/账号，普通与管理端分别计数），详见 `docs/remaining-issues-temp.md`。
 - 题库创建/更新尚未写 UPSERT 同步变更；同步模块仍是占位。
 - 题目列表存在 N+1 查询（媒体、标签、知识点逐个查询），数据量大时需要批量加载。
@@ -86,7 +86,7 @@
 
 ## 验证
 
-- `mvn -f services/api/pom.xml verify`：12 个测试全部通过
+- `mvn -f services/api/pom.xml verify`：13 个测试全部通过
 - `pnpm typecheck`：Web / Admin / Desktop 通过
 - `pnpm build:web` / `pnpm build:admin`：通过
 - 真实 RustFS 冒烟：上传、下载哈希一致、题目引用、删除保护均通过

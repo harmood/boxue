@@ -27,6 +27,7 @@ V1__init_schema.sql
 V2__seed_roles_and_permissions.sql
 V3__question_media.sql
 V4__session_audience.sql
+V5__admin_totp.sql
 ```
 
 ## 当前接口
@@ -52,6 +53,7 @@ V4__session_audience.sql
 - `POST /api/v1/admin/auth/login`
 - `POST /api/v1/admin/auth/refresh`
 - `GET /api/v1/admin/auth/me`
+- `GET /api/v1/admin/auth/totp/status` / `POST /api/v1/admin/auth/totp/setup|enable|disable`
 - `GET /api/v1/admin/users` / `GET /api/v1/admin/users/{userId}` / `PATCH /api/v1/admin/users/{userId}`
 - `PUT /api/v1/admin/users/{userId}/roles` / `POST /api/v1/admin/users/{userId}/force-logout` / `POST /api/v1/admin/users/{userId}/password-reset`
 - `GET/POST /api/v1/admin/roles` / `PUT/DELETE /api/v1/admin/roles/{roleId}` / `GET /api/v1/admin/permissions`

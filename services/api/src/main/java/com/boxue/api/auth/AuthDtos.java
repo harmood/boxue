@@ -171,6 +171,7 @@ public final class AuthDtos {
         String accessToken,
         long expiresIn,
         String refreshToken,
+        boolean totpEnabled,
         AdminSummary admin,
         List<String> roles,
         List<String> permissions
@@ -182,6 +183,7 @@ public final class AuthDtos {
         String email,
         String username,
         String displayName,
+        boolean totpEnabled,
         List<String> roles,
         List<String> permissions
     ) {
@@ -189,6 +191,34 @@ public final class AuthDtos {
 
     public record MessageResponse(
         String message
+    ) {
+    }
+
+    public record TotpStatusResponse(
+        boolean enabled,
+        Instant confirmedAt
+    ) {
+    }
+
+    public record TotpSetupRequest(
+        @NotBlank @Size(max = 128) String password
+    ) {
+    }
+
+    public record TotpSetupResponse(
+        String secret,
+        String otpauthUri
+    ) {
+    }
+
+    public record TotpCodeRequest(
+        @NotBlank @Pattern(regexp = "^[0-9]{6}$", message = "TOTP 必须是 6 位数字") String code
+    ) {
+    }
+
+    public record TotpDisableRequest(
+        @NotBlank @Size(max = 128) String password,
+        @NotBlank @Pattern(regexp = "^[0-9]{6}$", message = "TOTP 必须是 6 位数字") String code
     ) {
     }
 }

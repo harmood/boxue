@@ -30,6 +30,7 @@ async function logout() {
         <el-menu-item index="/questions">题目管理</el-menu-item>
         <el-menu-item index="/roles">角色权限</el-menu-item>
         <el-menu-item index="/audit-logs">审计日志</el-menu-item>
+        <el-menu-item index="/security">安全设置</el-menu-item>
       </el-menu>
     </el-aside>
     <el-container>

@@ -71,6 +71,8 @@ boxue:
       login-per-account: ${AUTH_LOGIN_PER_ACCOUNT:10}
       admin-per-ip: ${AUTH_ADMIN_LOGIN_PER_IP:10}
       admin-per-account: ${AUTH_ADMIN_LOGIN_PER_ACCOUNT:5}
+    totp:
+      encryption-key: ${BOXUE_TOTP_SECRET_KEY:}
     max-failed-logins: 5
     lockout-minutes: 15
     email-verification-token-minutes: 60
