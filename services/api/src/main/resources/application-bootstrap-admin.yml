@@ -1,0 +1,17 @@
+spring:
+  main:
+    web-application-type: none
+  flyway:
+    enabled: true
+
+boxue:
+  bootstrap:
+    admin:
+      email: ${BOXUE_BOOTSTRAP_ADMIN_EMAIL:}
+      username: ${BOXUE_BOOTSTRAP_ADMIN_USERNAME:admin}
+      password: ${BOXUE_BOOTSTRAP_ADMIN_PASSWORD:}
+      display-name: ${BOXUE_BOOTSTRAP_ADMIN_DISPLAY_NAME:Administrator}
+
+logging:
+  level:
+    com.boxue.api.bootstrap: INFO

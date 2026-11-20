@@ -10,6 +10,13 @@ mvn spring-boot:run
 ```
 
 默认端口：`8080`
+
+首次初始化管理员：
+
+```powershell
+.\scripts\bootstrap-admin.ps1 -Email admin@boxue.local -Username admin
+```
+
 本地数据库：PostgreSQL `127.0.0.1:5433/boxue`
 
 启动时 Flyway 自动执行：

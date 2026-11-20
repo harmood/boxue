@@ -36,12 +36,13 @@
 | Android | `flutter analyze`、`flutter test`、debug APK 构建通过 |
 | CI | contracts / web / api / android / security 五个任务 |
 | Docker | PostgreSQL / Redis / RustFS / Mailpit 全部 healthy |
+| 管理员引导 | CLI + Testcontainers 测试已实现 |
 | 文档 | 已整理为三份主文档 |
 
 ### 2.2 尚未开始
 
 - 注册、登录、刷新 Token、RBAC 业务实现
-- 管理员引导与审计
+- 管理员审计日志（引导 CLI 已实现）
 - 题库 CRUD
 - 四种题型业务逻辑
 - 图片上传与 LaTeX 渲染
@@ -609,7 +610,7 @@ main 全绿
 - 忘记密码、重置密码
 - 设备列表与移除设备
 - RBAC：用户、角色、权限、角色权限、用户角色
-- 管理员引导：CLI/环境变量创建初始管理员
+- 管理员引导：CLI 已实现（`scripts/bootstrap-admin.ps1`）
 - 审计日志：登录、角色变更、管理员操作
 - 限流与登录失败锁定
 - Web 登录/注册页
@@ -851,7 +852,7 @@ Issue 必须满足 DoR；缺陷必须包含复现步骤、期望/实际、日志
 | --- | --- | --- |
 | OpenAPI 不完整 | `openapi.yaml` 目前只有 `/health`，详细契约仍在 `API-CONTRACT.md` | Sprint 1-5 逐步补齐 |
 | 认证与 RBAC 未实现 | 只有骨架，没有注册/登录/Token/权限校验 | Sprint 1 |
-| 管理员引导未实现 | 没有 CLI / 环境变量创建初始管理员 | Sprint 1 |
+| 管理员认证与审计未实现 | 引导 CLI 已有，但登录、权限矩阵、审计日志未实现 | Sprint 1 |
 | 核心业务未实现 | 题库、题目、练习、复习、同步仍是占位 | Sprint 2-5 |
 | 测试不足 | 后端仅 2 个测试，前端/Android 几乎没有业务测试 | 随功能补齐 |
 | Staging 未部署 | 没有可演示、可验收的联调环境 | Sprint 6 前 |

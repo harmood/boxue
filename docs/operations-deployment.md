@@ -242,7 +242,21 @@ services/api/src/main/resources/db/migration/
 
 ### 6.3 初始化管理员
 
-初始管理员不通过开放注册创建，后续通过 CLI / 环境变量 / 一次性脚本创建，并要求首次登录修改密码。
+初始管理员不通过开放注册创建，也不写死进 Flyway 迁移。使用一次性 CLI：
+
+```powershell
+.\scripts\bootstrap-admin.ps1 -Email admin@boxue.local -Username admin
+```
+
+脚本会安全提示输入密码（至少 12 位），然后以 `bootstrap-admin` profile 启动：
+
+1. 自动执行 Flyway；
+2. 如果已存在 ACTIVE 的 `ADMIN`，直接跳过；
+3. 检查邮箱/用户名是否冲突；
+4. 使用 BCrypt 写入密码；
+5. 创建 `app_user`、`app_user_profile`、`app_user_role`。
+
+首次登录后必须立即修改初始密码。
 
 ### 6.4 备份与恢复
 

@@ -99,6 +99,12 @@ cd services\api
 mvn spring-boot:run
 ```
 
+首次初始化管理员（仅一次）：
+
+```powershell
+.\scripts\bootstrap-admin.ps1 -Email admin@boxue.local -Username admin
+```
+
 Android：
 
 ```powershell

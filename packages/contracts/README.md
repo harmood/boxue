@@ -7,10 +7,15 @@
 - `packages/contracts/API-CONTRACT.md`
 - `services/api/docs/DATABASE-DESIGN.md`
 
-后续应按 API 文档逐步补齐：
+当前已落地：
 
 - Auth
-- Admin Users / Roles
+- User / Devices
+- Admin Auth
+- Admin Users / Roles / Permissions / Audit Logs
+
+后续按 API 文档逐步补齐：
+
 - Banks / Questions
 - Media
 - Imports / Exports
