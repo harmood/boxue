@@ -121,18 +121,35 @@ cd apps\android; flutter analyze; flutter test
 
 ## 已知问题
 
-### Docker 未安装
+### Docker / WSL2 状态
 
-当前环境未检测到 Docker。`infra/docker/compose.yml` 已准备好，安装 Docker Desktop 后可以启动 PostgreSQL、Redis、S3 兼容存储和 Mailpit。
+- Docker Desktop `29.9.3` 已安装：`C:\Program Files\Docker\Docker`
+- Docker Compose `v5.7.0` 可用
+- WSL `3.0.5` 与 `VirtualMachinePlatform` 已安装
+- **需要重启系统一次**，WSL2 虚拟化才会生效
+
+重启后启动 Docker 基础设施：
+
+```powershell
+. C:\Users\ksl-54-it-n04\Project\devenv\scripts\env.ps1
+C:\Users\ksl-54-it-n04\Project\devenv\scripts\docker-up.ps1
+```
+
+原生中间件与 Docker 使用相同宿主机端口（5433 / 6379 / 9000 / 9001）。
+切换前先停止原生服务：
+
+```powershell
+C:\Users\ksl-54-it-n04\Project\devenv\scripts\stop.ps1 -Services postgres,redis,rustfs
+```
 
 ### SQLite 原生库下载
 
-`sqlite3 3.9.1` 的 build hook 会从 GitHub Releases 下载 Android 原生库。若直连失败：
+`sqlite3 3.9.1` 的 build hook 会从 GitHub Releases 下载 Android 原生库。
+`devenv\scripts\env.ps1` 已自动检测本机代理 `127.0.0.1:12450`，并设置
+`HTTP_PROXY` / `HTTPS_PROXY` / `NO_PROXY`；已实测可自动下载并校验 SHA256。
 
-1. 配置代理后重试；
-2. 使用镜像下载对应 `.so`，校验 SHA256 后放入
-   `.dart_tool/hooks_runner/shared/sqlite3/build/download-<hash>/`；
-3. 在本地 `apps/android/pubspec_overrides.yaml` 配置 `url_pattern`（该文件已加入 .gitignore）。
+若代理未开启且直连失败，可手动通过镜像下载并放入
+`.dart_tool/hooks_runner/shared/sqlite3/build/download-<hash>/`。
 
 ### Workmanager Kotlin 警告
 

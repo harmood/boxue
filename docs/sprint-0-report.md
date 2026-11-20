@@ -87,3 +87,22 @@ Sprint 0 已通过镜像下载并校验 SHA256 后完成构建。
 - 本机 PostgreSQL 5433、Redis、S3 可用。
 - Android debug APK 可构建。
 - 下一步实现注册、登录、刷新、RBAC 与管理员引导。
+
+---
+
+## 5. 追加处理（2026-11-20）
+
+### 5.1 系统代理与 SQLite 原生库
+
+- 系统代理 `127.0.0.1:12450` 已开启。
+- `devenv\scripts\env.ps1` 已加入代理自动探测，设置 `HTTP_PROXY` / `HTTPS_PROXY` / `NO_PROXY`。
+- 已删除手工缓存的 x64 SQLite 原生库并重新构建，Flutter 自动从 GitHub 下载、校验 SHA256 并完成 APK 构建。
+- 结论：SQLite 原生库问题已解决。
+
+### 5.2 Docker 环境
+
+- Docker Desktop `29.9.3` 已安装。
+- Docker Compose `v5.7.0` 已安装。
+- WSL `3.0.5` 与 `VirtualMachinePlatform` 已启用。
+- 当前状态：等待系统重启使 WSL2 虚拟化生效。
+- 重启后执行 `devenv\scripts\docker-up.ps1` 即可启动 PostgreSQL、Redis、S3 兼容存储与 Mailpit。
