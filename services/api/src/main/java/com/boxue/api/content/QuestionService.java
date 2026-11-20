@@ -242,7 +242,8 @@ public class QuestionService {
             decoded == null ? null : decoded.time(), decoded == null ? null : decoded.id(), pageSize + 1);
         boolean hasMore = rows.size() > pageSize;
         List<AdminQuestionRow> page = hasMore ? rows.subList(0, pageSize) : rows;
-        List<AdminQuestionView> items = page.stream().map(this::toAdminView).toList();
+        Relations relations = loadRelations(page.stream().map(AdminQuestionRow::id).toList());
+        List<AdminQuestionView> items = page.stream().map(row -> toAdminView(row, relations)).toList();
         String nextCursor = hasMore && !page.isEmpty()
             ? encodeCursor(page.get(page.size() - 1).updatedAt(), page.get(page.size() - 1).id())
             : null;
@@ -283,7 +284,8 @@ public class QuestionService {
     private QuestionPage toPage(List<QuestionRow> rows, int pageSize) {
         boolean hasMore = rows.size() > pageSize;
         List<QuestionRow> page = hasMore ? rows.subList(0, pageSize) : rows;
-        List<QuestionView> items = page.stream().map(this::toView).toList();
+        Relations relations = loadRelations(page.stream().map(QuestionRow::id).toList());
+        List<QuestionView> items = page.stream().map(row -> toView(row, relations)).toList();
         String nextCursor = hasMore && !page.isEmpty()
             ? encodeCursor(page.get(page.size() - 1).updatedAt(), page.get(page.size() - 1).id())
             : null;
@@ -348,12 +350,48 @@ public class QuestionService {
             row.source(), parseJson(row.payloadJson()), row.version(), row.createdAt(), row.updatedAt());
     }
 
+    private QuestionView toView(QuestionRow row, Relations relations) {
+        return new QuestionView(row.id(), row.bankId(), row.type(), row.status(),
+            toDoc(row.stemMd()), toDoc(row.explanationMd()), row.difficulty(),
+            relations.media().getOrDefault(row.id(), List.of()),
+            relations.tags().getOrDefault(row.id(), List.of()),
+            relations.knowledgePoints().getOrDefault(row.id(), List.of()),
+            row.source(), parseJson(row.payloadJson()), row.version(), row.createdAt(), row.updatedAt());
+    }
+
     private AdminQuestionView toAdminView(AdminQuestionRow row) {
         return new AdminQuestionView(row.id(), row.ownerId(), row.ownerEmail(), row.bankId(),
             row.bankName(), row.type(), row.status(), toDoc(row.stemMd()), toDoc(row.explanationMd()),
             row.difficulty(), repository.findMediaIds(row.id()),
             repository.findTagIds(row.id()), repository.findKnowledgePointIds(row.id()),
             row.source(), parseJson(row.payloadJson()), row.version(), row.createdAt(), row.updatedAt());
+    }
+
+    private AdminQuestionView toAdminView(AdminQuestionRow row, Relations relations) {
+        return new AdminQuestionView(row.id(), row.ownerId(), row.ownerEmail(), row.bankId(),
+            row.bankName(), row.type(), row.status(), toDoc(row.stemMd()), toDoc(row.explanationMd()),
+            row.difficulty(), relations.media().getOrDefault(row.id(), List.of()),
+            relations.tags().getOrDefault(row.id(), List.of()),
+            relations.knowledgePoints().getOrDefault(row.id(), List.of()),
+            row.source(), parseJson(row.payloadJson()), row.version(), row.createdAt(), row.updatedAt());
+    }
+
+    private Relations loadRelations(List<UUID> questionIds) {
+        if (questionIds.isEmpty()) {
+            return new Relations(Map.of(), Map.of(), Map.of());
+        }
+        return new Relations(
+            repository.findMediaIdsByQuestionIds(questionIds),
+            repository.findTagIdsByQuestionIds(questionIds),
+            repository.findKnowledgePointIdsByQuestionIds(questionIds)
+        );
+    }
+
+    private record Relations(
+        java.util.Map<UUID, List<UUID>> media,
+        java.util.Map<UUID, List<UUID>> tags,
+        java.util.Map<UUID, List<UUID>> knowledgePoints
+    ) {
     }
 
     private ContentDoc toDocNullable(UpdateContentDoc doc) {

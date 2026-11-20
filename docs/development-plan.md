@@ -53,6 +53,7 @@
 | 管理员 2FA | TOTP 密钥加密存储、扫码绑定、启用/关闭、登录校验；Admin Console 安全设置页 |
 | CSRF 防护 | Web/Admin 双提交 CSRF Cookie、刷新接口校验、Token 轮换 |
 | 同步第一链路 | BANK push/pull/status、UPSERT/DELETE、乐观锁冲突、clientChangeId 幂等；题库创建/更新写同步变更 |
+| 性能优化 | 题目列表与管理员题目列表的媒体/标签/知识点关联改为按页批量加载 |
 
 ### 2.2 尚未开始
 

@@ -2,7 +2,11 @@ package com.boxue.api.content;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -238,6 +242,35 @@ public class QuestionRepository {
         jdbc.batchUpdate("""
             INSERT INTO qb_question_media (question_id, media_id, sort_order) VALUES (?, ?, ?)
             """, mediaIds.stream().map(id -> new Object[] {questionId, id, order[0]++}).toList());
+    }
+
+    public Map<UUID, List<UUID>> findMediaIdsByQuestionIds(Collection<UUID> questionIds) {
+        return findRelations(questionIds, "qb_question_media", "media_id", "sort_order, media_id");
+    }
+
+    public Map<UUID, List<UUID>> findTagIdsByQuestionIds(Collection<UUID> questionIds) {
+        return findRelations(questionIds, "qb_question_tag", "tag_id", "tag_id");
+    }
+
+    public Map<UUID, List<UUID>> findKnowledgePointIdsByQuestionIds(Collection<UUID> questionIds) {
+        return findRelations(questionIds, "qb_question_knowledge_point", "knowledge_point_id", "knowledge_point_id");
+    }
+
+    private Map<UUID, List<UUID>> findRelations(Collection<UUID> questionIds, String table,
+                                                 String idColumn, String orderBy) {
+        if (questionIds.isEmpty()) {
+            return Map.of();
+        }
+        String placeholders = String.join(",", Collections.nCopies(questionIds.size(), "?"));
+        String sql = "SELECT question_id, " + idColumn + " FROM " + table
+            + " WHERE question_id IN (" + placeholders + ") ORDER BY question_id, " + orderBy;
+        Map<UUID, List<UUID>> result = new HashMap<>();
+        jdbc.query(sql, rs -> {
+            UUID questionId = rs.getObject("question_id", UUID.class);
+            result.computeIfAbsent(questionId, ignored -> new ArrayList<>())
+                .add(rs.getObject(idColumn, UUID.class));
+        }, questionIds.toArray());
+        return result;
     }
 
     public List<UUID> findMediaIds(UUID questionId) {
