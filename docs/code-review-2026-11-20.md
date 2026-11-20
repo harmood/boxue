@@ -86,7 +86,7 @@
 
 ## 验证
 
-- `mvn -f services/api/pom.xml verify`：16 个测试全部通过
+- `mvn -f services/api/pom.xml verify`：17 个测试全部通过
 - `pnpm typecheck`：Web / Admin / Desktop 通过
 - `pnpm build:web` / `pnpm build:admin`：通过
 - 真实 RustFS 冒烟：上传、下载哈希一致、题目引用、删除保护均通过

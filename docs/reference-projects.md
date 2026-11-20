@@ -456,3 +456,28 @@
 - 媒体删除采用软删除元数据 + 删除对象文件；重复上传已软删除的图片会恢复记录。
 - 题目与媒体是多对多关联，便于同一图片在多个题目中复用。
 - 媒体类型按文件头识别，不信任客户端 Content-Type。
+
+## 11. 同步第一链路实现参考（2026-11-20）
+
+BANK 同步的 push/pull/status、幂等和冲突处理参考：
+
+| 参考项目 | 借鉴点 | 博学落地 |
+| --- | --- | --- |
+| Joplin | 增量同步、客户端变更 ID、冲突不静默覆盖 | `sync_change` 序列、`clientChangeId` 幂等、rejected 冲突返回 |
+| Actual Budget | 本地优先、变更日志、按游标拉取 | `cursor` + `nextCursor` 升序拉取，客户端保存游标 |
+| ElectricSQL / PowerSync | 服务端变更流、离线写入队列 | push 批量提交、单条失败不阻塞整批 |
+| RxDB | 乐观锁与冲突响应 | BANK 更新/删除使用 `baseVersion`，冲突返回 `currentVersion` 与 `currentPayload` |
+| Logseq | 设备维度同步状态 | V6 设备 `last_sync_pull_at` / `last_sync_push_at` |
+
+### 11.1 关键取舍
+
+- 先做 BANK 单实体闭环，验证推送、拉取、幂等、冲突和游标，再扩展 QUESTION 等实体。
+- 使用服务端自增 `change_seq` 作为游标，简单可靠；不采用客户端时间戳排序。
+- 冲突以 rejected 返回，不阻塞同批其他变更，客户端拉取最新快照后人工合并。
+- 当前不做 CRDT 合并，BANK 使用乐观锁而非字段级合并。
+
+### 11.2 与开源项目的差异
+
+- 博学的 `sync_change.payload` 对 BANK 保存完整快照，便于新设备补齐。
+- `sync_idempotency` 以 `owner_id + clientChangeId` 唯一，重试返回同一 serverSeq。
+- 当前只支持 BANK；全量同步、90 天清理和其他实体仍待扩展。

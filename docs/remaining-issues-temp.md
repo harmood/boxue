@@ -9,7 +9,7 @@
 | 1 | 登录限流与防暴力破解（原“管理员 2FA、登录限流、CSRF”拆分出的第一项） | 已修复 |
 | 2 | 管理员 TOTP 2FA（含 TOTP 字段真正校验） | 已修复 |
 | 3 | CSRF Token / Cookie 刷新接口防护 | 已修复 |
-| 4 | 同步模块第一条完整链路；题库创建/更新 UPSERT 变更 | 待修复 |
+| 4 | 同步模块第一条完整链路；题库创建/更新 UPSERT 变更 | 已修复 |
 | 5 | 题目列表 N+1 查询（媒体、标签、知识点批量加载） | 待修复 |
 | 6 | 图片压缩、EXIF 剥离、SVG 兜底 | 待修复 |
 | 7 | 多标签页并发刷新令牌轮换竞态 | 待修复 |
@@ -42,6 +42,16 @@
 - 原生客户端通过请求体 refresh token 刷新时不需要 CSRF
 - 刷新成功会轮换 CSRF Token
 - 新增 `GET /api/v1/auth/csrf` 与 `GET /api/v1/admin/auth/csrf` 引导接口
+
+## 第 4 项说明
+
+- 题库创建/更新会写入 `sync_change` UPSERT 完整快照
+- 实现 `POST /api/v1/sync/push`、`GET /api/v1/sync/pull`、`GET /api/v1/sync/status`
+- 当前 push 支持 BANK：CREATE/UPSERT/DELETE，UPSERT/DELETE 使用 baseVersion 乐观锁
+- 支持 `sync_idempotency`，同一 clientChangeId 重试返回同一结果
+- 冲突返回 rejected，不阻塞同批次其他变更
+- V6 为设备增加 last_sync_pull_at / last_sync_push_at
+- 其他实体、全量同步和 90 天清理仍待后续扩展
 
 ## 说明
 

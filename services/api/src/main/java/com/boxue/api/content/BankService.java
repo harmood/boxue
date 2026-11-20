@@ -13,6 +13,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import com.boxue.api.auth.AuditService;
+import com.boxue.api.sync.BankSyncSnapshot;
+import com.boxue.api.sync.SyncRepository;
 import com.boxue.api.content.BankDtos.AdminBankPage;
 import com.boxue.api.content.BankDtos.AdminBankView;
 import com.boxue.api.content.BankDtos.BankPage;
@@ -32,11 +34,16 @@ public class BankService {
     private final BankRepository repository;
     private final AuditService auditService;
     private final ObjectMapper objectMapper;
+    private final SyncRepository syncRepository;
+    private final BankSyncSnapshot bankSyncSnapshot;
 
-    public BankService(BankRepository repository, AuditService auditService, ObjectMapper objectMapper) {
+    public BankService(BankRepository repository, AuditService auditService, ObjectMapper objectMapper,
+                       SyncRepository syncRepository, BankSyncSnapshot bankSyncSnapshot) {
         this.repository = repository;
         this.auditService = auditService;
         this.objectMapper = objectMapper;
+        this.syncRepository = syncRepository;
+        this.bankSyncSnapshot = bankSyncSnapshot;
     }
 
     public BankPage list(UUID ownerId, String status, String q, String cursor, Integer limit) {
@@ -66,7 +73,10 @@ public class BankService {
         repository.insertBank(bankId, ownerId, name, trimToNull(request.description()), visibility);
         auditService.log(ownerId, "BANK_CREATED", "BANK", bankId.toString(),
             Map.of("name", name, "visibility", visibility), httpRequest);
-        return toView(requireBank(ownerId, bankId));
+        BankRow created = requireBank(ownerId, bankId);
+        syncRepository.appendChange(ownerId, "BANK", bankId, "UPSERT", created.version(),
+            toJson(bankSyncSnapshot.snapshot(created)), null);
+        return toView(created);
     }
 
     public BankView get(UUID ownerId, UUID bankId) {
@@ -102,7 +112,10 @@ public class BankService {
         }
         auditService.log(ownerId, "BANK_UPDATED", "BANK", bankId.toString(),
             Map.of("name", name, "status", status), httpRequest);
-        return toView(requireBank(ownerId, bankId));
+        BankRow saved = requireBank(ownerId, bankId);
+        syncRepository.appendChange(ownerId, "BANK", bankId, "UPSERT", saved.version(),
+            toJson(bankSyncSnapshot.snapshot(saved)), null);
+        return toView(saved);
     }
 
     @Transactional
@@ -121,7 +134,7 @@ public class BankService {
             repository.softDeleteQuestions(bankId);
         }
         repository.softDeleteBank(bankId, ownerId);
-        repository.insertSyncTombstone(ownerId, bankId, tombstonePayload());
+        syncRepository.appendChange(ownerId, "BANK", bankId, "DELETE", null, tombstonePayload(), null);
         auditService.log(ownerId, "BANK_DELETED", "BANK", bankId.toString(),
             Map.of("cascade", cascade, "questionCount", questionCount), httpRequest);
     }
@@ -166,6 +179,14 @@ public class BankService {
             row.id(), row.ownerId(), row.ownerEmail(), row.name(), row.description(),
             row.visibility(), row.status(), repository.countQuestions(row.id()), row.version(),
             row.createdAt(), row.updatedAt());
+    }
+
+    private String toJson(com.fasterxml.jackson.databind.JsonNode node) {
+        try {
+            return objectMapper.writeValueAsString(node);
+        } catch (JsonProcessingException ex) {
+            return "{}";
+        }
     }
 
     private String trimToNull(String value) {

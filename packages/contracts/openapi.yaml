@@ -1572,6 +1572,81 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
 
+  /sync/push:
+    post:
+      tags: [Sync]
+      summary: 推送本地同步变更
+      operationId: syncPush
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SyncPushRequest"
+      responses:
+        "200":
+          description: 逐条处理结果
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SyncPushResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /sync/pull:
+    get:
+      tags: [Sync]
+      summary: 拉取服务端同步变更
+      operationId: syncPull
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: cursor
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 500
+            default: 500
+      responses:
+        "200":
+          description: 变更分页
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SyncPullResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /sync/status:
+    get:
+      tags: [Sync]
+      summary: 查询同步状态
+      operationId: syncStatus
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: 同步状态
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SyncStatusResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
 components:
   securitySchemes:
     bearerAuth:
@@ -2248,6 +2323,162 @@ components:
           type: [string, "null"]
         hasMore:
           type: boolean
+
+    SyncChangeRequest:
+      type: object
+      required: [clientChangeId, entityType, entityId, operation]
+      additionalProperties: false
+      properties:
+        clientChangeId:
+          type: string
+          format: uuid
+        entityType:
+          type: string
+          enum: [BANK]
+        entityId:
+          type: string
+          format: uuid
+        operation:
+          type: string
+          enum: [CREATE, UPSERT, DELETE]
+        baseVersion:
+          type: [integer, "null"]
+          minimum: 1
+        clientTimestamp:
+          type: string
+          format: date-time
+        payload:
+          type: object
+          additionalProperties: true
+
+    SyncPushRequest:
+      type: object
+      required: [changes]
+      additionalProperties: false
+      properties:
+        deviceId:
+          type: string
+          format: uuid
+        changes:
+          type: array
+          minItems: 1
+          maxItems: 500
+          items:
+            $ref: "#/components/schemas/SyncChangeRequest"
+
+    SyncAccepted:
+      type: object
+      required: [clientChangeId, serverSeq]
+      additionalProperties: false
+      properties:
+        clientChangeId:
+          type: string
+          format: uuid
+        serverSeq:
+          type: integer
+          minimum: 1
+        entityVersion:
+          type: [integer, "null"]
+
+    SyncRejected:
+      type: object
+      required: [clientChangeId, code, message]
+      additionalProperties: false
+      properties:
+        clientChangeId:
+          type: string
+          format: uuid
+        code:
+          type: string
+        message:
+          type: string
+        conflict:
+          type: object
+          additionalProperties: true
+
+    SyncPushResponse:
+      type: object
+      required: [accepted, rejected, serverTime]
+      additionalProperties: false
+      properties:
+        accepted:
+          type: array
+          items:
+            $ref: "#/components/schemas/SyncAccepted"
+        rejected:
+          type: array
+          items:
+            $ref: "#/components/schemas/SyncRejected"
+        serverTime:
+          type: string
+          format: date-time
+
+    SyncChangeItem:
+      type: object
+      required: [seq, entityType, entityId, operation, serverTime]
+      additionalProperties: false
+      properties:
+        seq:
+          type: integer
+          minimum: 1
+        entityType:
+          type: string
+        entityId:
+          type: string
+          format: uuid
+        operation:
+          type: string
+          enum: [UPSERT, DELETE]
+        entityVersion:
+          type: [integer, "null"]
+        payload:
+          type: object
+          additionalProperties: true
+        serverTime:
+          type: string
+          format: date-time
+
+    SyncPullResponse:
+      type: object
+      required: [changes, nextCursor, hasMore, serverTime]
+      additionalProperties: false
+      properties:
+        changes:
+          type: array
+          items:
+            $ref: "#/components/schemas/SyncChangeItem"
+        nextCursor:
+          type: integer
+          minimum: 0
+        hasMore:
+          type: boolean
+        serverTime:
+          type: string
+          format: date-time
+
+    SyncStatusResponse:
+      type: object
+      required: [serverCursor, pendingConflictCount, serverTime]
+      additionalProperties: false
+      properties:
+        deviceId:
+          type: [string, "null"]
+          format: uuid
+        serverCursor:
+          type: integer
+          minimum: 0
+        lastPulledAt:
+          type: [string, "null"]
+          format: date-time
+        lastPushedAt:
+          type: [string, "null"]
+          format: date-time
+        pendingConflictCount:
+          type: integer
+          minimum: 0
+        serverTime:
+          type: string
+          format: date-time
 
     BankVisibility:
       type: string

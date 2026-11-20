@@ -124,11 +124,29 @@ public class BankRepository {
         return count != null && count > 0;
     }
 
+    public void insertBankWithId(UUID id, UUID ownerId, String name, String description,
+                                 String visibility, String status) {
+        jdbc.update("""
+            INSERT INTO qb_bank (id, owner_id, name, description_md, visibility, status, version)
+            VALUES (?, ?, ?, ?, ?, ?, 1)
+            """, id, ownerId, name, description, visibility, status);
+    }
+
     public void insertBank(UUID id, UUID ownerId, String name, String description, String visibility) {
         jdbc.update("""
             INSERT INTO qb_bank (id, owner_id, name, description_md, visibility, status, version)
             VALUES (?, ?, ?, ?, ?, 'ACTIVE', 1)
             """, id, ownerId, name, description, visibility);
+    }
+
+    public int updateBankFull(UUID id, UUID ownerId, String name, String description,
+                             String visibility, String status, int expectedVersion) {
+        return jdbc.update("""
+            UPDATE qb_bank
+            SET name = ?, description_md = ?, visibility = ?, status = ?,
+                version = version + 1, updated_at = now()
+            WHERE id = ? AND owner_id = ? AND version = ? AND deleted_at IS NULL
+            """, name, description, visibility, status, id, ownerId, expectedVersion);
     }
 
     public int updateBank(UUID id, UUID ownerId, String name, String description,

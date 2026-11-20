@@ -28,6 +28,7 @@ V2__seed_roles_and_permissions.sql
 V3__question_media.sql
 V4__session_audience.sql
 V5__admin_totp.sql
+V6__device_sync_timestamps.sql
 ```
 
 ## 当前接口
@@ -67,7 +68,9 @@ V5__admin_totp.sql
 - `GET /api/v1/admin/questions` / `GET /api/v1/admin/questions/{questionId}`（只读）
 - `POST /api/v1/media`（multipart 图片上传）/ `GET /api/v1/media/{mediaId}`
 - `GET /api/v1/media/{mediaId}/content` / `DELETE /api/v1/media/{mediaId}`
-- `GET /api/v1/sync/status`（占位）
+- `POST /api/v1/sync/push`（当前支持 BANK）
+- `GET /api/v1/sync/pull`（当前支持 BANK）
+- `GET /api/v1/sync/status`
 - `GET /api/v1/admin/ping`（需要 ADMIN 角色）
 
 ## 模块

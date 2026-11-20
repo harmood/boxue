@@ -251,7 +251,8 @@ services/api/src/main/resources/db/migration/
 ├─ V2__seed_roles_and_permissions.sql
 ├─ V3__question_media.sql
 ├─ V4__session_audience.sql
-└─ V5__admin_totp.sql
+├─ V5__admin_totp.sql
+└─ V6__device_sync_timestamps.sql
 ```
 
 规则：
