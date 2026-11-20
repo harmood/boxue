@@ -481,3 +481,24 @@ BANK 同步的 push/pull/status、幂等和冲突处理参考：
 - 博学的 `sync_change.payload` 对 BANK 保存完整快照，便于新设备补齐。
 - `sync_idempotency` 以 `owner_id + clientChangeId` 唯一，重试返回同一 serverSeq。
 - 当前只支持 BANK；全量同步、90 天清理和其他实体仍待扩展。
+
+## 12. 图片压缩与 SVG 处理参考（2026-11-20）
+
+| 参考项目 | 借鉴点 | 博学落地 |
+| --- | --- | --- |
+| Thumbnailator | 按最大边缩放、保持比例、JPEG 质量控制 | `ImageProcessor` 统一压缩 PNG/JPEG/WebP |
+| TwelveMonkeys ImageIO | 补足 Java ImageIO 的 WebP 读取能力 | 读取 WebP 后按透明通道输出 PNG 或 JPEG |
+| Apache Batik | SVG 文档渲染与 PNG 转码 | `SvgRasterizer` 将清理后的 SVG 渲染为 PNG |
+| OWASP File Upload / SVG 安全实践 | 不保存不可信 SVG、禁止脚本与外部资源 | 删除 script/foreignObject/style，过滤事件属性和外部 href |
+
+### 12.1 关键取舍
+
+- 不把原始 SVG 直接存入对象存储，统一栅格化为 PNG，避免 SVG 脚本与外部资源风险。
+- 重新编码图片以剥离 EXIF；这也会移除 GPS 等隐私信息。
+- GIF 不做重编码，避免丢失动画。
+- 压缩参数可配置，后续可增加 WebP 输出和更细的质量策略。
+
+### 12.2 与开源项目的差异
+
+- 博学只做上传入口的统一处理，不做完整图片编辑器或 CDN 转码服务。
+- SVG 白名单仍以安全为先，复杂 SVG 效果可能被简化。

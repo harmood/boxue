@@ -12,6 +12,8 @@ public class MediaProperties {
     private String secretKey = "boxue_dev_secret_change_me";
     private String bucket = "boxue-media";
     private int maxSizeMb = 10;
+    private int maxDimension = 1600;
+    private double jpegQuality = 0.85;
 
     public String getEndpoint() {
         return endpoint;
@@ -51,5 +53,21 @@ public class MediaProperties {
 
     public void setMaxSizeMb(int maxSizeMb) {
         this.maxSizeMb = maxSizeMb;
+    }
+
+    public int getMaxDimension() {
+        return maxDimension;
+    }
+
+    public void setMaxDimension(int maxDimension) {
+        this.maxDimension = maxDimension;
+    }
+
+    public double getJpegQuality() {
+        return jpegQuality;
+    }
+
+    public void setJpegQuality(double jpegQuality) {
+        this.jpegQuality = jpegQuality;
     }
 }

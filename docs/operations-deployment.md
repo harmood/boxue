@@ -198,6 +198,8 @@ flutter run
 | `S3_PATH_STYLE` | `true` |
 | `S3_MAX_SIZE_MB` | `10` |
 | `S3_MAX_REQUEST_MB` | `12` |
+| `S3_IMAGE_MAX_DIMENSION` | `1600` |
+| `S3_JPEG_QUALITY` | `0.85` |
 | `BOXUE_AI_ENABLED` | `false` |
 | `JWT_ISSUER` | `boxue` |
 | `JWT_CLIENT_SECRET` | 32 字节以上开发密钥 |

@@ -24,3 +24,5 @@ boxue:
     bucket: ${S3_BUCKET:boxue-media}
     path-style: ${S3_PATH_STYLE:true}
     max-size-mb: ${S3_MAX_SIZE_MB:10}
+    max-dimension: ${S3_IMAGE_MAX_DIMENSION:1600}
+    jpeg-quality: ${S3_JPEG_QUALITY:0.85}

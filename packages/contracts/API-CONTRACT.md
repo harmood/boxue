@@ -1374,8 +1374,10 @@ Content-Type: multipart/form-data
 
 限制：
 
-- 支持 PNG、JPEG、WebP、GIF
-- 不允许 SVG
+- 支持 PNG、JPEG、WebP、GIF、SVG
+- PNG/JPEG/WebP 上传后会重新编码：压缩到最大边 1600px、剥离 EXIF 等元数据
+- GIF 保留原始文件以保留动画
+- SVG 会清理脚本/外链并栅格化为 PNG，不保存原始 SVG
 - 单文件默认最大 10MB
 - 服务端按文件头校验真实 MIME，不信任客户端 Content-Type
 - 图片按 `owner_id + sha256` 去重；重复上传返回已有记录并标记 `deduped=true`

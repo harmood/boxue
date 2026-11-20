@@ -19,6 +19,7 @@ mvn spring-boot:run
 
 本地数据库：PostgreSQL `127.0.0.1:5433/boxue`
 对象存储：RustFS/S3 `http://127.0.0.1:9000`，bucket `boxue-media`（首次上传自动创建）
+图片处理：最大边 1600px、JPEG 质量 0.85、移除 EXIF、SVG 栅格化为 PNG
 
 启动时 Flyway 自动执行：
 

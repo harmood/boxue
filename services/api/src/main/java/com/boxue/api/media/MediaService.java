@@ -1,7 +1,5 @@
 package com.boxue.api.media;
 
-import java.awt.image.BufferedImage;
-import java.io.ByteArrayInputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
@@ -9,7 +7,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import javax.imageio.ImageIO;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -30,20 +27,24 @@ public class MediaService {
         "image/png", "png",
         "image/jpeg", "jpg",
         "image/webp", "webp",
-        "image/gif", "gif"
+        "image/gif", "gif",
+        "image/svg+xml", "svg"
     );
 
     private final MediaRepository repository;
     private final StorageService storageService;
     private final MediaProperties properties;
     private final AuditService auditService;
+    private final ImageProcessor imageProcessor;
 
     public MediaService(MediaRepository repository, StorageService storageService,
-                        MediaProperties properties, AuditService auditService) {
+                        MediaProperties properties, AuditService auditService,
+                        ImageProcessor imageProcessor) {
         this.repository = repository;
         this.storageService = storageService;
         this.properties = properties;
         this.auditService = auditService;
+        this.imageProcessor = imageProcessor;
     }
 
     @Transactional
@@ -63,15 +64,19 @@ public class MediaService {
         } catch (Exception ex) {
             throw new MediaException(HttpStatus.BAD_REQUEST, "MEDIA_READ_FAILED", "读取上传文件失败");
         }
-        String mimeType = detectMime(bytes);
-        if (mimeType == null) {
+        String inputMimeType = detectMime(bytes);
+        if (inputMimeType == null) {
             throw new MediaException(HttpStatus.BAD_REQUEST, "MEDIA_TYPE_NOT_ALLOWED",
-                "仅支持 PNG、JPEG、WebP、GIF 图片");
+                "仅支持 PNG、JPEG、WebP、GIF、SVG 图片");
         }
+        ProcessedImage processed = imageProcessor.process(bytes, inputMimeType);
+        bytes = processed.bytes();
+        String mimeType = processed.mimeType();
+        Integer width = processed.width();
+        Integer height = processed.height();
         String sha256 = sha256(bytes);
-        String extension = ALLOWED_TYPES.get(mimeType);
+        String extension = ALLOWED_TYPES.getOrDefault(mimeType, "bin");
         String storageKey = ownerId + "/" + sha256 + "." + extension;
-        Integer[] size = imageSize(bytes);
 
         MediaRow existing = repository.findByOwnerAndSha(ownerId, sha256).orElse(null);
         if (existing != null && existing.deletedAt() == null) {
@@ -79,19 +84,21 @@ public class MediaService {
         }
         if (existing != null) {
             storageService.put(storageKey, bytes, mimeType);
-            repository.revive(existing.id(), mimeType, bytes.length, size[0], size[1], storageKey);
+            repository.revive(existing.id(), mimeType, bytes.length, width, height, storageKey);
             MediaRow revived = repository.findByIdAndOwner(existing.id(), ownerId).orElseThrow();
             auditService.log(ownerId, "MEDIA_RESTORED", "MEDIA", existing.id().toString(),
-                Map.of("mimeType", mimeType, "sizeBytes", bytes.length), httpRequest);
+                Map.of("mimeType", mimeType, "inputMimeType", inputMimeType,
+                    "sizeBytes", bytes.length), httpRequest);
             return toView(revived, false);
         }
 
         storageService.put(storageKey, bytes, mimeType);
         UUID mediaId = UUID.randomUUID();
         repository.insert(mediaId, ownerId, sha256, mimeType, bytes.length,
-            size[0], size[1], storageKey);
+            width, height, storageKey);
         auditService.log(ownerId, "MEDIA_UPLOADED", "MEDIA", mediaId.toString(),
-            Map.of("mimeType", mimeType, "sizeBytes", bytes.length), httpRequest);
+            Map.of("mimeType", mimeType, "inputMimeType", inputMimeType,
+                "sizeBytes", bytes.length), httpRequest);
         return toView(repository.findByIdAndOwner(mediaId, ownerId).orElseThrow(), false);
     }
 
@@ -143,6 +150,11 @@ public class MediaService {
     }
 
     private String detectMime(byte[] bytes) {
+        String head = new String(bytes, 0, Math.min(bytes.length, 1024), java.nio.charset.StandardCharsets.UTF_8)
+            .replace("\uFEFF", "").trim().toLowerCase(java.util.Locale.ROOT);
+        if (head.startsWith("<?xml") || head.startsWith("<svg") || head.contains("<svg")) {
+            return "image/svg+xml";
+        }
         if (bytes.length >= 8
             && (bytes[0] & 0xFF) == 0x89 && bytes[1] == 'P' && bytes[2] == 'N' && bytes[3] == 'G') {
             return "image/png";
@@ -169,18 +181,6 @@ public class MediaService {
             return HexFormat.of().formatHex(digest.digest(bytes));
         } catch (NoSuchAlgorithmException ex) {
             throw new IllegalStateException("SHA-256 unavailable", ex);
-        }
-    }
-
-    private Integer[] imageSize(byte[] bytes) {
-        try {
-            BufferedImage image = ImageIO.read(new ByteArrayInputStream(bytes));
-            if (image == null) {
-                return new Integer[] {null, null};
-            }
-            return new Integer[] {image.getWidth(), image.getHeight()};
-        } catch (Exception ex) {
-            return new Integer[] {null, null};
         }
     }
 }

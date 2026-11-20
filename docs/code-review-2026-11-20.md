@@ -77,7 +77,7 @@
 - 登录限流已于后续修复（按 IP/账号，普通与管理端分别计数），详见 `docs/remaining-issues-temp.md`。
 - 题库创建/更新尚未写 UPSERT 同步变更；同步模块仍是占位。
 - 题目列表 N+1 查询已修复：媒体、标签、知识点改为按页批量加载。
-- 图片压缩、EXIF 剥离、SVG 兜底未实现。
+- 图片压缩、EXIF 剥离、SVG 栅格化已于后续修复。
 - 图片上传在“对象写入成功但数据库插入失败”的极端情况下可能产生孤儿对象。
 - 多标签页同时刷新时，服务端刷新令牌轮换可能让其中一个标签页刷新失败。
 - CORS 来源目前硬编码为本地开发地址，生产需改为配置项。
@@ -86,7 +86,7 @@
 
 ## 验证
 
-- `mvn -f services/api/pom.xml verify`：17 个测试全部通过
+- `mvn -f services/api/pom.xml verify`：19 个测试全部通过
 - `pnpm typecheck`：Web / Admin / Desktop 通过
 - `pnpm build:web` / `pnpm build:admin`：通过
 - 真实 RustFS 冒烟：上传、下载哈希一致、题目引用、删除保护均通过
