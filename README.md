@@ -33,7 +33,7 @@ boxue/
 - 后端：Java 21 + Spring Boot 3.5 + Spring Security + Spring Data JPA + Flyway
 - 数据库：PostgreSQL 17
 - 缓存：Redis 8
-- 对象存储：S3 兼容（本机 RustFS / Docker MinIO）
+- 对象存储：S3 兼容（RustFS）
 - 契约：OpenAPI 3.1 + Redocly + openapi-typescript
 - 监控：Actuator + Micrometer + Prometheus + Loki + Grafana
 

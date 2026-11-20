@@ -101,8 +101,9 @@ Sprint 0 已通过镜像下载并校验 SHA256 后完成构建。
 
 ### 5.2 Docker 环境
 
-- Docker Desktop `29.9.3` 已安装。
+- Docker Desktop `4.99.0` / CLI `29.9.3` 已安装并运行。
 - Docker Compose `v5.7.0` 已安装。
 - WSL `3.0.5` 与 `VirtualMachinePlatform` 已启用。
-- 当前状态：等待系统重启使 WSL2 虚拟化生效。
-- 重启后执行 `devenv\scripts\docker-up.ps1` 即可启动 PostgreSQL、Redis、S3 兼容存储与 Mailpit。
+- 已配置国内镜像加速，PostgreSQL、Redis、RustFS、Mailpit 镜像均已拉取。
+- `boxue` Compose 栈已启动，四个容器全部 healthy。
+- 后端已对 Docker PostgreSQL 成功执行 Flyway V1/V2，`/actuator/health` 返回 200。

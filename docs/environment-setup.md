@@ -77,7 +77,7 @@ C:\Users\ksl-54-it-n04\Project\devenv\scripts\status.ps1
 ```
 
 > 本机 5432 已被另一个 PostgreSQL 16 实例占用，项目统一使用 **5433**。
-> 对象存储统一走 S3 兼容 API：本机是 RustFS，Docker Compose 中可用 MinIO。
+> 对象存储统一走 S3 兼容 API：本机与 Docker Compose 均使用 RustFS。
 
 ## 数据库初始化
 
@@ -123,20 +123,31 @@ cd apps\android; flutter analyze; flutter test
 
 ### Docker / WSL2 状态
 
-- Docker Desktop `29.9.3` 已安装：`C:\Program Files\Docker\Docker`
-- Docker Compose `v5.7.0` 可用
-- WSL `3.0.5` 与 `VirtualMachinePlatform` 已安装
-- **需要重启系统一次**，WSL2 虚拟化才会生效
+已部署并验证：
 
-重启后启动 Docker 基础设施：
+- Docker Desktop `4.99.0` / Docker CLI `29.9.3`
+- Docker Compose `v5.7.0`
+- WSL `3.0.5`，`VirtualMachinePlatform` 已启用
+- Docker 引擎 `linux/amd64` 正常运行
+- 镜像加速：`docker.1panel.live`、`docker.m.daocloud.io`、`docker.1ms.run`
+
+当前 Compose 栈已启动且全部 healthy：
+
+| 容器 | 端口 |
+| --- | --- |
+| `boxue-postgres` | 5433 |
+| `boxue-redis` | 6379 |
+| `boxue-object-storage`（RustFS） | 9000 / 9001 |
+| `boxue-mailpit` | 1025 / 8025 |
+
+启动与查看：
 
 ```powershell
-. C:\Users\ksl-54-it-n04\Project\devenv\scripts\env.ps1
 C:\Users\ksl-54-it-n04\Project\devenv\scripts\docker-up.ps1
+docker compose -f infra\docker\compose.yml ps
 ```
 
-原生中间件与 Docker 使用相同宿主机端口（5433 / 6379 / 9000 / 9001）。
-切换前先停止原生服务：
+原生中间件与 Docker 使用相同宿主机端口。切换前先停止原生服务：
 
 ```powershell
 C:\Users\ksl-54-it-n04\Project\devenv\scripts\stop.ps1 -Services postgres,redis,rustfs

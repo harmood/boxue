@@ -888,7 +888,7 @@ Sprint 0 已完成，环境与工程基线已统一：
 | 项目 | 处理结果 |
 | --- | --- |
 | PostgreSQL 端口 | 统一为 **5433**（README、`.env.example`、`application.yml`、`application-local.yml`、Compose） |
-| 对象存储 | 统一称“S3 兼容存储”；本机 RustFS，Compose 使用 MinIO，端口均为 9000/9001 |
+| 对象存储 | 统一称“S3 兼容存储”；本机与 Compose 均使用 RustFS，端口均为 9000/9001 |
 | Spring Boot | 统一升级并固定为 **3.5.16** |
 | Node / pnpm | 统一为 Node **26**、pnpm **12.21.0** |
 | Flutter | 固定 **3.50.0**，CI 不再使用漂移的 `stable` |
