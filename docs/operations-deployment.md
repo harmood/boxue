@@ -196,6 +196,8 @@ flutter run
 | `S3_SECRET_KEY` | `boxue_dev_secret_change_me` |
 | `S3_BUCKET` | `boxue-media` |
 | `S3_PATH_STYLE` | `true` |
+| `S3_MAX_SIZE_MB` | `10` |
+| `S3_MAX_REQUEST_MB` | `12` |
 | `BOXUE_AI_ENABLED` | `false` |
 | `JWT_ISSUER` | `boxue` |
 | `JWT_CLIENT_SECRET` | 32 字节以上开发密钥 |

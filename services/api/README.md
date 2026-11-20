@@ -18,6 +18,7 @@ mvn spring-boot:run
 ```
 
 本地数据库：PostgreSQL `127.0.0.1:5433/boxue`
+对象存储：RustFS/S3 `http://127.0.0.1:9000`，bucket `boxue-media`（首次上传自动创建）
 
 启动时 Flyway 自动执行：
 
@@ -58,6 +59,8 @@ V2__seed_roles_and_permissions.sql
 - `GET/POST /api/v1/banks/{bankId}/questions` / `GET/PATCH/DELETE /api/v1/questions/{questionId}`
 - `GET /api/v1/questions/search` / `POST /api/v1/questions/{questionId}/publish|archive|duplicate` / `GET /api/v1/questions/{questionId}/versions`
 - `GET /api/v1/admin/questions` / `GET /api/v1/admin/questions/{questionId}`（只读）
+- `POST /api/v1/media`（multipart 图片上传）/ `GET /api/v1/media/{mediaId}`
+- `GET /api/v1/media/{mediaId}/content` / `DELETE /api/v1/media/{mediaId}`
 - `GET /api/v1/sync/status`（占位）
 - `GET /api/v1/admin/ping`（需要 ADMIN 角色）
 

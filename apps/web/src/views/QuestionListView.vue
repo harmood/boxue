@@ -3,6 +3,7 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getBank, type BankView } from '../api/banks'
+import MarkdownContent from '../components/MarkdownContent.vue'
 import {
   archiveQuestion,
   deleteQuestion,
@@ -227,7 +228,7 @@ function formatDate(value: string) {
       </el-table-column>
       <el-table-column label="题干" min-width="320">
         <template #default="{ row }">
-          <div class="stem">{{ row.stem.content }}</div>
+          <MarkdownContent :content="row.stem.content" class="stem" />
         </template>
       </el-table-column>
       <el-table-column label="难度" width="80" align="center">
@@ -275,7 +276,7 @@ h2 { margin: 4px 0; }
 .muted { margin: 0 0 16px; color: #64748b; }
 .filters { margin-bottom: 16px; }
 .filters :deep(.el-form-item) { margin-bottom: 0; }
-.stem { white-space: pre-wrap; line-height: 1.5; }
+.stem { line-height: 1.5; max-height: 140px; overflow: hidden; }
 .pager { display: flex; justify-content: flex-end; align-items: center; gap: 12px; margin-top: 16px; }
 .pager .muted { margin: 0; }
 </style>

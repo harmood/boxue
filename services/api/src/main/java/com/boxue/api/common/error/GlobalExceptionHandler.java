@@ -12,11 +12,13 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import com.boxue.api.admin.AdminException;
 import com.boxue.api.content.ContentException;
+import com.boxue.api.media.MediaException;
 import com.boxue.api.auth.AuthException;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -63,6 +65,23 @@ public class GlobalExceptionHandler {
     ) {
         return error(exception.status(), exception.code(), exception.getMessage(),
             exception.details(), request);
+    }
+
+    @ExceptionHandler(MediaException.class)
+    public ResponseEntity<ApiError> handleMedia(
+        MediaException exception,
+        HttpServletRequest request
+    ) {
+        return error(exception.status(), exception.code(), exception.getMessage(),
+            exception.details(), request);
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<ApiError> handleUploadTooLarge(
+        MaxUploadSizeExceededException exception,
+        HttpServletRequest request
+    ) {
+        return error(HttpStatus.PAYLOAD_TOO_LARGE, "MEDIA_TOO_LARGE", "上传文件过大", Map.of(), request);
     }
 
     @ExceptionHandler(DataIntegrityViolationException.class)

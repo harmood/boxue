@@ -7,8 +7,8 @@ import ForgotPasswordView from '../views/ForgotPasswordView.vue'
 import ResetPasswordView from '../views/ResetPasswordView.vue'
 import DashboardView from '../views/DashboardView.vue'
 import BankListView from '../views/BankListView.vue'
-import QuestionListView from '../views/QuestionListView.vue'
-import QuestionEditorView from '../views/QuestionEditorView.vue'
+const QuestionListView = () => import('../views/QuestionListView.vue')
+const QuestionEditorView = () => import('../views/QuestionEditorView.vue')
 import PracticeView from '../views/PracticeView.vue'
 import { useAuthStore } from '../stores/auth'
 

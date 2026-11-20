@@ -215,6 +215,10 @@ function formatDate(value: string | null) {
             <el-descriptions-item label="题型">{{ typeLabel(detail.type) }}</el-descriptions-item>
             <el-descriptions-item label="状态">{{ statusLabel(detail.status) }}</el-descriptions-item>
             <el-descriptions-item label="难度">{{ detail.difficulty }}</el-descriptions-item>
+            <el-descriptions-item label="图片">
+              <span v-if="detail.mediaIds?.length">{{ detail.mediaIds.join(', ') }}</span>
+              <span v-else>-</span>
+            </el-descriptions-item>
             <el-descriptions-item label="题干">
               <div class="stem">{{ detail.stem?.content }}</div>
             </el-descriptions-item>

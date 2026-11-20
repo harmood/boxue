@@ -1328,6 +1328,121 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
 
+  /media:
+    post:
+      tags: [Media]
+      summary: 上传图片
+      operationId: uploadMedia
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              additionalProperties: false
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        "201":
+          description: 上传成功；重复文件返回已有记录
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MediaView"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "413":
+          description: 文件过大
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "502":
+          description: 对象存储不可用
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /media/{mediaId}:
+    get:
+      tags: [Media]
+      summary: 图片元数据
+      operationId: getMedia
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/MediaIdPath"
+      responses:
+        "200":
+          description: 图片元数据
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MediaView"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      tags: [Media]
+      summary: 删除图片
+      operationId: deleteMedia
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/MediaIdPath"
+      responses:
+        "204":
+          description: 删除成功
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /media/{mediaId}/content:
+    get:
+      tags: [Media]
+      summary: 读取图片内容
+      operationId: getMediaContent
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/MediaIdPath"
+      responses:
+        "200":
+          description: 图片二进制内容
+          content:
+            image/png:
+              schema:
+                type: string
+                format: binary
+            image/jpeg:
+              schema:
+                type: string
+                format: binary
+            image/webp:
+              schema:
+                type: string
+                format: binary
+            image/gif:
+              schema:
+                type: string
+                format: binary
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
 components:
   securitySchemes:
     bearerAuth:
@@ -1506,6 +1621,13 @@ components:
       schema:
         type: string
         format: uuid
+    MediaIdPath:
+      name: mediaId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
   responses:
     BadRequest:
       description: 请求参数错误
@@ -1568,6 +1690,36 @@ components:
             $ref: "#/components/schemas/ApiError"
 
   schemas:
+    MediaView:
+      type: object
+      required: [id, sha256, mimeType, sizeBytes, url, deduped, createdAt]
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          format: uuid
+        sha256:
+          type: string
+          maxLength: 64
+        mimeType:
+          type: string
+        sizeBytes:
+          type: integer
+          minimum: 1
+        width:
+          type: [integer, "null"]
+          minimum: 1
+        height:
+          type: [integer, "null"]
+          minimum: 1
+        url:
+          type: string
+        deduped:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+
     QuestionType:
       type: string
       enum: [SINGLE_CHOICE, MULTIPLE_CHOICE, TRUE_FALSE, FILL_BLANK]
@@ -1690,7 +1842,7 @@ components:
 
     QuestionView:
       type: object
-      required: [id, bankId, type, status, stem, difficulty, tagIds, knowledgePointIds, payload, version, createdAt, updatedAt]
+      required: [id, bankId, type, status, stem, difficulty, mediaIds, tagIds, knowledgePointIds, payload, version, createdAt, updatedAt]
       additionalProperties: false
       properties:
         id:
@@ -1877,7 +2029,7 @@ components:
 
     AdminQuestionView:
       type: object
-      required: [id, ownerId, ownerEmail, bankId, bankName, type, status, stem, difficulty, tagIds, knowledgePointIds, payload, version, createdAt, updatedAt]
+      required: [id, ownerId, ownerEmail, bankId, bankName, type, status, stem, difficulty, mediaIds, tagIds, knowledgePointIds, payload, version, createdAt, updatedAt]
       additionalProperties: false
       properties:
         id:
@@ -1908,6 +2060,11 @@ components:
           type: integer
           minimum: 1
           maximum: 5
+        mediaIds:
+          type: array
+          items:
+            type: string
+            format: uuid
         tagIds:
           type: array
           items:

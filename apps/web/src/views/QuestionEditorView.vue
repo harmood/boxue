@@ -2,7 +2,11 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import type { UploadRequestOptions } from 'element-plus'
 import { getBank } from '../api/banks'
+import { uploadMedia } from '../api/media'
+import MarkdownContent from '../components/MarkdownContent.vue'
+import MediaImage from '../components/MediaImage.vue'
 import {
   createQuestion,
   getQuestion,
@@ -42,6 +46,7 @@ const typeOptions: { label: string; value: QuestionType; hint: string }[] = [
 
 const loading = ref(false)
 const saving = ref(false)
+const uploading = ref(false)
 const bankName = ref('')
 
 const form = reactive({
@@ -51,6 +56,7 @@ const form = reactive({
   explanation: '',
   difficulty: 3,
   source: '',
+  mediaIds: [] as string[],
   options: [
     { key: 'A', content: '' },
     { key: 'B', content: '' }
@@ -98,6 +104,7 @@ async function loadQuestion(id: string) {
     form.explanation = question.explanation?.content ?? ''
     form.difficulty = question.difficulty
     form.source = question.source ?? ''
+    form.mediaIds = [...question.mediaIds]
     form.version = question.version
 
     if (question.type === 'SINGLE_CHOICE' || question.type === 'MULTIPLE_CHOICE') {
@@ -227,6 +234,37 @@ function buildPayload() {
   return payload
 }
 
+async function handleUpload(options: UploadRequestOptions) {
+  uploading.value = true
+  try {
+    const media = await uploadMedia(options.file as File)
+    if (!form.mediaIds.includes(media.id)) {
+      form.mediaIds.push(media.id)
+    }
+    appendMediaMarkdown(media.id)
+    ElMessage.success(media.deduped ? '图片已存在，已复用' : '图片已上传')
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : '图片上传失败')
+  } finally {
+    uploading.value = false
+  }
+}
+
+function appendMediaMarkdown(mediaId: string) {
+  const marker = `media://${mediaId}`
+  if (form.stem.includes(marker)) return
+  const prefix = form.stem.trim() ? `${form.stem.trimEnd()}\n\n` : ''
+  form.stem = `${prefix}![图片](${marker})\n`
+}
+
+function removeMedia(mediaId: string) {
+  form.mediaIds = form.mediaIds.filter((id) => id !== mediaId)
+  form.stem = form.stem
+    .split(`![图片](media://${mediaId})`).join('')
+    .split(`media://${mediaId}`).join('')
+    .trimEnd()
+}
+
 async function submit() {
   if (!form.stem.trim()) {
     ElMessage.warning('请输入题干')
@@ -246,6 +284,7 @@ async function submit() {
         stem: { format: 'MARKDOWN_LATEX', content: form.stem.trim() },
         explanation: { format: 'MARKDOWN_LATEX', content: form.explanation.trim() },
         difficulty: form.difficulty,
+        mediaIds: form.mediaIds,
         source: form.source.trim(),
         payload,
         status: form.status,
@@ -261,6 +300,7 @@ async function submit() {
           ? { format: 'MARKDOWN_LATEX', content: form.explanation.trim() }
           : null,
         difficulty: form.difficulty,
+        mediaIds: form.mediaIds,
         source: form.source.trim() || null,
         payload
       }
@@ -332,6 +372,28 @@ async function submit() {
       </el-form>
     </el-card>
 
+    <el-card shadow="never" class="section">
+      <template #header>
+        <div class="card-head">
+          <span>题目图片</span>
+          <el-upload
+            :show-file-list="false"
+            :http-request="handleUpload"
+            accept="image/png,image/jpeg,image/webp,image/gif"
+          >
+            <el-button :loading="uploading">上传图片</el-button>
+          </el-upload>
+        </div>
+      </template>
+      <div v-if="form.mediaIds.length" class="media-gallery">
+        <div v-for="mediaId in form.mediaIds" :key="mediaId" class="media-thumb">
+          <MediaImage :media-id="mediaId" alt="题目图片" />
+          <el-button link type="danger" @click="removeMedia(mediaId)">移除</el-button>
+        </div>
+      </div>
+      <p v-else class="hint">支持 PNG/JPEG/WebP/GIF，单张不超过 10 MB。上传后会自动插入 media:// 引用。</p>
+    </el-card>
+
     <el-card v-if="form.type === 'SINGLE_CHOICE' || form.type === 'MULTIPLE_CHOICE'" shadow="never" class="section">
       <template #header>
         <div class="card-head">
@@ -398,6 +460,16 @@ async function submit() {
       </div>
     </el-card>
 
+    <el-card shadow="never" class="section">
+      <template #header><span>题目预览</span></template>
+      <MarkdownContent v-if="form.stem.trim()" :content="form.stem" />
+      <p v-else class="hint">输入题干后显示 Markdown/LaTeX 预览。</p>
+      <div v-if="form.explanation.trim()" class="explanation-preview">
+        <h4>解析</h4>
+        <MarkdownContent :content="form.explanation" />
+      </div>
+    </el-card>
+
     <div class="actions">
       <el-button @click="router.push(`/banks/${bankId}/questions`)">取消</el-button>
       <el-button type="primary" :loading="saving" @click="submit">保存题目</el-button>
@@ -417,5 +489,9 @@ h2 { margin: 4px 0; }
 .correct { flex: none; }
 .blank-card { padding: 12px; margin-bottom: 12px; border: 1px solid #e5e7eb; border-radius: 10px; }
 .switch-row { display: flex; gap: 16px; margin-top: 8px; }
+.media-gallery { display: flex; flex-wrap: wrap; gap: 16px; }
+.media-thumb { width: 180px; padding: 8px; border: 1px solid #e5e7eb; border-radius: 10px; text-align: center; }
+.media-thumb :deep(.media-image) { max-height: 140px; margin: 0 auto 8px; }
+.explanation-preview { margin-top: 16px; padding-top: 12px; border-top: 1px dashed #e5e7eb; }
 .actions { display: flex; justify-content: flex-end; gap: 12px; }
 </style>

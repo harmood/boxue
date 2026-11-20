@@ -23,3 +23,4 @@ boxue:
     secret-key: ${S3_SECRET_KEY:boxue_dev_secret_change_me}
     bucket: ${S3_BUCKET:boxue-media}
     path-style: ${S3_PATH_STYLE:true}
+    max-size-mb: ${S3_MAX_SIZE_MB:10}

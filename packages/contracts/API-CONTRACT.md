@@ -1322,30 +1322,32 @@ Content-Type: multipart/form-data
 | 字段 | 说明 |
 | --- | --- |
 | `file` | 图片文件 |
-| `purpose` | `QUESTION_IMAGE` / `AVATAR` / `IMPORT_ASSET` |
 
 响应 `201`：
 
 ```json
 {
   "id": "media-uuid",
-  "url": "https://.../media-uuid.webp",
-  "sha256": "...",
-  "mimeType": "image/webp",
+  "sha256": "5e3d382d...",
+  "mimeType": "image/png",
   "sizeBytes": 123456,
   "width": 800,
-  "height": 600
+  "height": 600,
+  "url": "/api/v1/media/media-uuid/content",
+  "deduped": false,
+  "createdAt": "2026-11-20T10:00:00Z"
 }
 ```
 
 限制：
 
-- 支持 JPEG、PNG、WebP
-- 第一阶段不允许 SVG
+- 支持 PNG、JPEG、WebP、GIF
+- 不允许 SVG
 - 单文件默认最大 10MB
-- 服务端应校验真实 MIME，不只看扩展名
-- 可剥离 EXIF
-- 图片按 `owner_id + sha256` 去重
+- 服务端按文件头校验真实 MIME，不信任客户端 Content-Type
+- 图片按 `owner_id + sha256` 去重；重复上传返回已有记录并标记 `deduped=true`
+- 对象存储使用 RustFS/S3，key 为 `{ownerId}/{sha256}.{ext}`
+- 首次上传自动创建 bucket
 
 ### 11.2 媒体元数据
 
@@ -1353,16 +1355,28 @@ Content-Type: multipart/form-data
 GET /api/v1/media/{mediaId}
 ```
 
-### 11.3 删除媒体
+### 11.3 读取图片内容
+
+```http
+GET /api/v1/media/{mediaId}/content
+Authorization: Bearer <access-token>
+```
+
+- 返回图片二进制
+- 需要认证；Web 端通过带 Token 的 fetch 获取 Blob 后展示
+- 响应带 `Cache-Control: private, max-age=300`
+
+### 11.4 删除媒体
 
 ```http
 DELETE /api/v1/media/{mediaId}
 ```
 
-- 被题目引用时返回 `409`
-- 或先解除引用再删除
+- 被未删除题目引用时返回 `409 MEDIA_IN_USE`
+- 先解除题目引用再删除
+- 软删除元数据并删除对象存储文件
 
-### 11.4 图片引用
+### 11.5 图片引用
 
 题目内容中使用：
 
@@ -1370,12 +1384,17 @@ DELETE /api/v1/media/{mediaId}
 media://<mediaId>
 ```
 
-发布题目时服务端校验：
+服务端校验：
 
 - 媒体存在
 - 属于当前用户
 - 未被删除
-- MIME 类型允许
+
+Web 端渲染时将 `media://id` 替换为带认证获取的 Blob URL，并支持 Markdown 图片语法：
+
+```markdown
+![示意图](media://media-uuid)
+```
 
 ---
 

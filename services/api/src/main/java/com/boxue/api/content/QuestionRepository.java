@@ -229,6 +229,23 @@ public class QuestionRepository {
             """, ids.stream().map(id -> new Object[] {questionId, id}).toList());
     }
 
+    public void replaceMedia(UUID questionId, List<UUID> mediaIds) {
+        jdbc.update("DELETE FROM qb_question_media WHERE question_id = ?", questionId);
+        if (mediaIds == null || mediaIds.isEmpty()) {
+            return;
+        }
+        int[] order = {0};
+        jdbc.batchUpdate("""
+            INSERT INTO qb_question_media (question_id, media_id, sort_order) VALUES (?, ?, ?)
+            """, mediaIds.stream().map(id -> new Object[] {questionId, id, order[0]++}).toList());
+    }
+
+    public List<UUID> findMediaIds(UUID questionId) {
+        return jdbc.queryForList("""
+            SELECT media_id FROM qb_question_media WHERE question_id = ? ORDER BY sort_order, media_id
+            """, UUID.class, questionId);
+    }
+
     public List<UUID> findTagIds(UUID questionId) {
         return jdbc.queryForList(
             "SELECT tag_id FROM qb_question_tag WHERE question_id = ? ORDER BY tag_id",

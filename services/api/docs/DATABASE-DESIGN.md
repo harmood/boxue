@@ -676,7 +676,7 @@ ON qb_knowledge_point (owner_id, path);
 | `id` | uuid | PK | 媒体 ID |
 | `owner_id` | uuid | not null, FK app_user | 所有者 |
 | `sha256` | char(64) | not null | 内容哈希 |
-| `mime_type` | varchar(100) | not null | JPEG/PNG/WebP |
+| `mime_type` | varchar(100) | not null | PNG/JPEG/WebP/GIF |
 | `size_bytes` | bigint | not null | 大小 |
 | `width` | integer | null | 宽 |
 | `height` | integer | null | 高 |
@@ -687,6 +687,17 @@ ON qb_knowledge_point (owner_id, path);
 | `deleted_at` | timestamptz | null | 软删除 |
 
 唯一约束：`(owner_id, sha256)`。
+
+### 7.9 qb_question_media
+
+| 字段 | 类型 | 约束 | 说明 |
+| --- | --- | --- | --- |
+| `question_id` | uuid | PK, FK qb_question | 题目 |
+| `media_id` | uuid | PK, FK qb_media | 媒体 |
+| `sort_order` | integer | not null default 0 | 展示顺序 |
+| `created_at` | timestamptz | not null default now() | 创建时间 |
+
+索引：`(media_id)`，用于删除前检查题目引用。
 
 ---
 

@@ -11,6 +11,7 @@ export interface AdminQuestionItem {
   stem: { format: string; content: string }
   explanation: { format: string; content: string } | null
   difficulty: number
+  mediaIds: string[]
   tagIds: string[]
   knowledgePointIds: string[]
   source: string | null

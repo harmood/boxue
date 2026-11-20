@@ -30,6 +30,7 @@ import com.boxue.api.content.QuestionDtos.UpdateQuestionRequest;
 import com.boxue.api.content.QuestionRepository.AdminQuestionRow;
 import com.boxue.api.content.QuestionRepository.QuestionRow;
 import com.boxue.api.content.QuestionRepository.VersionRow;
+import com.boxue.api.media.MediaService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -46,13 +47,16 @@ public class QuestionService {
     private final QuestionPayloadValidator validator;
     private final AuditService auditService;
     private final ObjectMapper objectMapper;
+    private final MediaService mediaService;
 
     public QuestionService(QuestionRepository repository, QuestionPayloadValidator validator,
-                           AuditService auditService, ObjectMapper objectMapper) {
+                           AuditService auditService, ObjectMapper objectMapper,
+                           MediaService mediaService) {
         this.repository = repository;
         this.validator = validator;
         this.auditService = auditService;
         this.objectMapper = objectMapper;
+        this.mediaService = mediaService;
     }
 
     public QuestionPage list(UUID ownerId, UUID bankId, String type, String status, String q,
@@ -91,8 +95,10 @@ public class QuestionService {
         validateContentDoc(request.explanation(), "explanation");
         int difficulty = request.difficulty() == null ? 3 : request.difficulty();
         JsonNode payload = validator.normalizeAndValidate(type, request.payload());
+        List<UUID> mediaIds = distinct(request.mediaIds());
         List<UUID> tagIds = distinct(request.tagIds());
         List<UUID> knowledgePointIds = distinct(request.knowledgePointIds());
+        validateMedia(ownerId, mediaIds);
         validateRelations(ownerId, tagIds, knowledgePointIds);
 
         UUID questionId = UUID.randomUUID();
@@ -101,10 +107,11 @@ public class QuestionService {
         repository.insertQuestion(questionId, ownerId, bankId, type, status,
             request.stem().content(), explanationText(request.explanation()), difficulty,
             payloadJson, searchText, trimToNull(request.source()));
+        repository.replaceMedia(questionId, mediaIds);
         repository.replaceTags(questionId, tagIds);
         repository.replaceKnowledgePoints(questionId, knowledgePointIds);
         repository.insertVersion(questionId, 1, snapshot(type, request.stem(), request.explanation(),
-            difficulty, payload, tagIds, knowledgePointIds, request.source(), status), ownerId);
+            difficulty, payload, mediaIds, tagIds, knowledgePointIds, request.source(), status), ownerId);
         repository.insertSyncChange(ownerId, questionId, 1, syncPayload(1));
         auditService.log(ownerId, "QUESTION_CREATED", "QUESTION", questionId.toString(),
             Map.of("bankId", bankId.toString(), "type", type, "status", status), httpRequest);
@@ -133,9 +140,11 @@ public class QuestionService {
             : validator.normalizeAndValidate(type, parseJson(existing.payloadJson()));
         String source = request.source() != null ? trimToNull(request.source()) : existing.source();
 
+        List<UUID> mediaIds = request.mediaIds() != null ? distinct(request.mediaIds()) : null;
         List<UUID> tagIds = request.tagIds() != null ? distinct(request.tagIds()) : null;
         List<UUID> knowledgePointIds = request.knowledgePointIds() != null
             ? distinct(request.knowledgePointIds()) : null;
+        validateMedia(ownerId, mediaIds);
         validateRelations(ownerId, tagIds, knowledgePointIds);
 
         int updated = repository.updateQuestion(questionId, ownerId, status, stem.content(),
@@ -144,6 +153,9 @@ public class QuestionService {
         if (updated == 0) {
             throw new ContentException(HttpStatus.CONFLICT, "QUESTION_VERSION_CONFLICT", "题目已被其他设备修改");
         }
+        if (mediaIds != null) {
+            repository.replaceMedia(questionId, mediaIds);
+        }
         if (tagIds != null) {
             repository.replaceTags(questionId, tagIds);
         }
@@ -151,10 +163,11 @@ public class QuestionService {
             repository.replaceKnowledgePoints(questionId, knowledgePointIds);
         }
         QuestionRow saved = requireQuestion(ownerId, questionId);
+        List<UUID> finalMediaIds = repository.findMediaIds(questionId);
         List<UUID> finalTagIds = repository.findTagIds(questionId);
         List<UUID> finalKnowledgePointIds = repository.findKnowledgePointIds(questionId);
         repository.insertVersion(questionId, saved.version(), snapshot(saved.type(), stem, explanation,
-            difficulty, payload, finalTagIds, finalKnowledgePointIds, source, status), ownerId);
+            difficulty, payload, finalMediaIds, finalTagIds, finalKnowledgePointIds, source, status), ownerId);
         repository.insertSyncChange(ownerId, questionId, saved.version(), syncPayload(saved.version()));
         auditService.log(ownerId, "QUESTION_UPDATED", "QUESTION", questionId.toString(),
             Map.of("version", saved.version(), "status", status), httpRequest);
@@ -187,6 +200,7 @@ public class QuestionService {
         requireBank(ownerId, request.targetBankId());
         String status = normalizeStatus(request.status(), "DRAFT");
         JsonNode payload = validator.normalizeAndValidate(source.type(), parseJson(source.payloadJson()));
+        List<UUID> mediaIds = repository.findMediaIds(questionId);
         List<UUID> tagIds = repository.findTagIds(questionId);
         List<UUID> knowledgePointIds = repository.findKnowledgePointIds(questionId);
 
@@ -196,10 +210,11 @@ public class QuestionService {
         repository.insertQuestion(newId, ownerId, request.targetBankId(), source.type(), status,
             source.stemMd(), source.explanationMd(), source.difficulty(), toJson(payload),
             buildSearchText(source.stemMd(), explanation, payload), source.source());
+        repository.replaceMedia(newId, mediaIds);
         repository.replaceTags(newId, tagIds);
         repository.replaceKnowledgePoints(newId, knowledgePointIds);
         repository.insertVersion(newId, 1, snapshot(source.type(), stem, explanation, source.difficulty(),
-            payload, tagIds, knowledgePointIds, source.source(), status), ownerId);
+            payload, mediaIds, tagIds, knowledgePointIds, source.source(), status), ownerId);
         repository.insertSyncChange(ownerId, newId, 1, syncPayload(1));
         auditService.log(ownerId, "QUESTION_DUPLICATED", "QUESTION", newId.toString(),
             Map.of("sourceId", questionId.toString(), "targetBankId", request.targetBankId().toString()),
@@ -249,10 +264,11 @@ public class QuestionService {
             throw new ContentException(HttpStatus.CONFLICT, "QUESTION_VERSION_CONFLICT", "题目已被其他设备修改");
         }
         QuestionRow saved = requireQuestion(ownerId, questionId);
+        List<UUID> mediaIds = repository.findMediaIds(questionId);
         List<UUID> tagIds = repository.findTagIds(questionId);
         List<UUID> knowledgePointIds = repository.findKnowledgePointIds(questionId);
         repository.insertVersion(questionId, saved.version(), snapshot(saved.type(), stem, explanation,
-            saved.difficulty(), payload, tagIds, knowledgePointIds, saved.source(), status), ownerId);
+            saved.difficulty(), payload, mediaIds, tagIds, knowledgePointIds, saved.source(), status), ownerId);
         repository.insertSyncChange(ownerId, questionId, saved.version(), syncPayload(saved.version()));
         auditService.log(ownerId, action, "QUESTION", questionId.toString(),
             Map.of("status", status, "version", saved.version()), httpRequest);
@@ -278,6 +294,13 @@ public class QuestionService {
     private QuestionRow requireQuestion(UUID ownerId, UUID questionId) {
         return repository.findQuestion(ownerId, questionId)
             .orElseThrow(() -> new ContentException(HttpStatus.NOT_FOUND, "QUESTION_NOT_FOUND", "题目不存在"));
+    }
+
+    private void validateMedia(UUID ownerId, List<UUID> mediaIds) {
+        if (mediaIds != null && !mediaIds.isEmpty() && !mediaService.allOwned(ownerId, mediaIds)) {
+            throw new ContentException(HttpStatus.BAD_REQUEST, "MEDIA_NOT_FOUND",
+                "图片不存在或不属于当前用户");
+        }
     }
 
     private void validateRelations(UUID ownerId, List<UUID> tagIds, List<UUID> knowledgePointIds) {
@@ -314,7 +337,8 @@ public class QuestionService {
 
     private QuestionView toView(QuestionRow row) {
         return new QuestionView(row.id(), row.bankId(), row.type(), row.status(),
-            toDoc(row.stemMd()), toDoc(row.explanationMd()), row.difficulty(), List.of(),
+            toDoc(row.stemMd()), toDoc(row.explanationMd()), row.difficulty(),
+            repository.findMediaIds(row.id()),
             repository.findTagIds(row.id()), repository.findKnowledgePointIds(row.id()),
             row.source(), parseJson(row.payloadJson()), row.version(), row.createdAt(), row.updatedAt());
     }
@@ -322,7 +346,8 @@ public class QuestionService {
     private AdminQuestionView toAdminView(AdminQuestionRow row) {
         return new AdminQuestionView(row.id(), row.ownerId(), row.ownerEmail(), row.bankId(),
             row.bankName(), row.type(), row.status(), toDoc(row.stemMd()), toDoc(row.explanationMd()),
-            row.difficulty(), repository.findTagIds(row.id()), repository.findKnowledgePointIds(row.id()),
+            row.difficulty(), repository.findMediaIds(row.id()),
+            repository.findTagIds(row.id()), repository.findKnowledgePointIds(row.id()),
             row.source(), parseJson(row.payloadJson()), row.version(), row.createdAt(), row.updatedAt());
     }
 
@@ -368,8 +393,8 @@ public class QuestionService {
     }
 
     private String snapshot(String type, ContentDoc stem, ContentDoc explanation, int difficulty,
-                            JsonNode payload, List<UUID> tagIds, List<UUID> knowledgePointIds,
-                            String source, String status) {
+                            JsonNode payload, List<UUID> mediaIds, List<UUID> tagIds,
+                            List<UUID> knowledgePointIds, String source, String status) {
         ObjectNode node = objectMapper.createObjectNode();
         node.put("type", type);
         node.put("status", status);
@@ -377,6 +402,7 @@ public class QuestionService {
         node.put("explanationMd", explanation == null ? null : explanation.content());
         node.put("difficulty", difficulty);
         node.set("payload", payload);
+        node.set("mediaIds", objectMapper.valueToTree(mediaIds));
         node.set("tagIds", objectMapper.valueToTree(tagIds));
         node.set("knowledgePointIds", objectMapper.valueToTree(knowledgePointIds));
         node.put("source", source);

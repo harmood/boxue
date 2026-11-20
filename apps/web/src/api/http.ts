@@ -68,7 +68,9 @@ export async function apiFetch<T>(
   allowRefresh = true
 ): Promise<T> {
   const headers = new Headers(init.headers)
-  headers.set('Content-Type', 'application/json')
+  if (!(init.body instanceof FormData)) {
+    headers.set('Content-Type', 'application/json')
+  }
   headers.set('X-Client-Platform', 'web')
 
   const token = getAccessToken()
@@ -102,4 +104,43 @@ export async function apiFetch<T>(
     return undefined as T
   }
   return (await response.json()) as T
+}
+
+
+export async function apiFetchBlob(
+  path: string,
+  init: RequestInit = {},
+  allowRefresh = true
+): Promise<Blob> {
+  const headers = new Headers(init.headers)
+  headers.set('X-Client-Platform', 'web')
+
+  const token = getAccessToken()
+  if (token) {
+    headers.set('Authorization', `Bearer ${token}`)
+  }
+
+  const response = await fetch(`${baseUrl}${path}`, {
+    ...init,
+    headers,
+    credentials: 'include'
+  })
+
+  if (response.status === 401 && allowRefresh) {
+    if (await refreshAccessToken()) {
+      return apiFetchBlob(path, init, false)
+    }
+  }
+
+  if (!response.ok) {
+    const body = (await response.json().catch(() => null)) as ApiErrorBody | null
+    throw new ApiRequestError(
+      response.status,
+      body?.code ?? 'HTTP_ERROR',
+      body?.message ?? `请求失败：${response.status}`,
+      body?.details
+    )
+  }
+
+  return response.blob()
 }

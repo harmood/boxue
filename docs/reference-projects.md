@@ -433,3 +433,26 @@
 - 题目类型创建后不可修改，避免 payload 语义漂移。
 - 所有写操作写入 `qb_question_version` 与 `sync_change`，为后续同步与历史作答追溯做准备。
 - 图片上传与 LaTeX 实际渲染尚未实现，当前仅存储 `media://` 与公式文本。
+
+## 10. 媒体上传与 Markdown/LaTeX 渲染参考（2026-11-20）
+
+| 参考项目 | 借鉴点 | 博学落地 |
+| --- | --- | --- |
+| Moodle File API | 附件归属校验、内容中引用媒体、删除前检查引用 | `qb_media` + `qb_question_media`；`media://` 引用；`MEDIA_IN_USE` |
+| Joplin Attachments | 附件按哈希去重、软删除、对象存储 key 稳定 | `owner_id + sha256` 去重；S3 key `{ownerId}/{sha256}.{ext}` |
+| eladmin 文件上传 | 上传按钮、缩略图预览、失败提示 | Web 题目编辑器 `el-upload` + 缩略图 + 自动插入 Markdown |
+| KaTeX | 浏览器端 LaTeX 渲染、错误容错 | `MarkdownContent.vue` 使用 KaTeX，`throwOnError: false` |
+| markdown-it | 安全 Markdown 渲染（默认禁用原始 HTML） | `html: false`，避免题目内容注入脚本 |
+
+### 10.1 关键取舍
+
+- 采用内容寻址去重，但不做跨用户共享，避免越权读取。
+- 图片内容接口需要 Bearer Token，Web 通过 fetch 获取 Blob URL；不暴露公开直链。
+- 先保证上传、引用、渲染闭环，图片压缩、EXIF 剥离、SVG 兜底留到后续。
+- 未采用 Moodle 的完整文件 API 与 Joplin 的本地附件同步模型。
+
+### 10.2 与开源项目的差异
+
+- 媒体删除采用软删除元数据 + 删除对象文件；重复上传已软删除的图片会恢复记录。
+- 题目与媒体是多对多关联，便于同一图片在多个题目中复用。
+- 媒体类型按文件头识别，不信任客户端 Content-Type。

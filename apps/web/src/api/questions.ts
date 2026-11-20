@@ -65,6 +65,7 @@ export interface CreateQuestionInput {
   stem: ContentDoc
   explanation?: ContentDoc | null
   difficulty?: number
+  mediaIds?: string[]
   source?: string | null
   payload: QuestionPayload
 }
@@ -73,6 +74,7 @@ export interface UpdateQuestionInput {
   stem?: ContentDoc
   explanation?: ContentDoc | null
   difficulty?: number
+  mediaIds?: string[]
   source?: string | null
   payload?: QuestionPayload
   status?: QuestionStatus
