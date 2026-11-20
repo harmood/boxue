@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { getBank, listBanks, type AdminBankItem } from '../api/banks'
 
+const router = useRouter()
 const loading = ref(false)
 const banks = ref<AdminBankItem[]>([])
 const hasMore = ref(false)
@@ -175,9 +177,10 @@ function formatDate(value: string | null) {
       <el-table-column label="最近更新" width="170">
         <template #default="{ row }">{{ formatDate(row.updatedAt) }}</template>
       </el-table-column>
-      <el-table-column label="操作" width="90" fixed="right">
+      <el-table-column label="操作" width="140" fixed="right">
         <template #default="{ row }">
           <el-button link type="primary" @click="openDetail(row)">详情</el-button>
+          <el-button link type="primary" @click="router.push(`/questions?bankId=${row.id}`)">题目</el-button>
         </template>
       </el-table-column>
       <template #empty>

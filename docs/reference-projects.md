@@ -407,3 +407,29 @@
 - 博学题库名称在同一用户下忽略大小写唯一，开源项目多数允许重名。
 - 博学更新使用 `version` 乐观锁，冲突返回 `409`，不静默覆盖。
 - 删除题库默认拒绝非空题库，需显式 `cascade=true`，避免误删题目。
+
+## 9. 题目 CRUD 与四种题型实现参考（2026-11-20）
+
+题目 CRUD 与四种题型的 payload 校验、编辑器和版本快照参考了以下开源项目：
+
+| 参考项目 | 借鉴点 | 博学落地 |
+| --- | --- | --- |
+| Moodle Question types | 每种题型独立的编辑表单与校验；题目草稿/发布状态；版本历史 | 四种题型独立 payload 校验；`DRAFT/PUBLISHED/ARCHIVED`；`qb_question_version` 快照 |
+| TAO Assessment Platform | 题目与题库解耦；题型数据结构化存储；发布前校验 | `qb_question.payload` JSONB；创建/更新/发布/归档统一校验 |
+| Open edX / Oppia | 富文本题干、解析与可扩展题型 | `MARKDOWN_LATEX` 内容格式；题型枚举预留扩展 |
+| eladmin | 表格 + 弹窗/抽屉的编辑交互 | Web 题目列表 + 动态题型编辑器；Admin 只读列表 + payload Drawer |
+| Anki | 卡片内容与模板分离 | 题干/解析与题型 payload 分离存储，便于后续模板化渲染 |
+
+### 9.1 关键取舍
+
+- 采用 Moodle 的“每题独立题型校验”思路，但 payload 统一存入 `qb_question.payload`，避免为每种题型建表。
+- 采用 TAO 的“发布前完整校验”，但草稿创建时也做结构校验，避免脏数据进入同步链路。
+- 采用版本快照而不是事件溯源，读取简单，满足历史追溯与多端冲突排查。
+- 未引入 Moodle 的题库分类树、TAO 的复杂评分模型、Open edX 的课程上下文。
+
+### 9.2 与开源项目的差异
+
+- 博学使用乐观锁 `version`，更新冲突返回 `409 QUESTION_VERSION_CONFLICT`。
+- 题目类型创建后不可修改，避免 payload 语义漂移。
+- 所有写操作写入 `qb_question_version` 与 `sync_change`，为后续同步与历史作答追溯做准备。
+- 图片上传与 LaTeX 实际渲染尚未实现，当前仅存储 `media://` 与公式文本。

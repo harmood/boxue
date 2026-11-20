@@ -55,6 +55,9 @@ V2__seed_roles_and_permissions.sql
 - `GET /api/v1/admin/audit-logs`
 - `GET/POST /api/v1/banks` / `GET/PATCH/DELETE /api/v1/banks/{bankId}`（乐观锁 `version`，删除支持 `cascade`）
 - `GET /api/v1/admin/banks` / `GET /api/v1/admin/banks/{bankId}`（只读）
+- `GET/POST /api/v1/banks/{bankId}/questions` / `GET/PATCH/DELETE /api/v1/questions/{questionId}`
+- `GET /api/v1/questions/search` / `POST /api/v1/questions/{questionId}/publish|archive|duplicate` / `GET /api/v1/questions/{questionId}/versions`
+- `GET /api/v1/admin/questions` / `GET /api/v1/admin/questions/{questionId}`（只读）
 - `GET /api/v1/sync/status`（占位）
 - `GET /api/v1/admin/ping`（需要 ADMIN 角色）
 

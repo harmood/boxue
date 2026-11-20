@@ -27,6 +27,7 @@ async function logout() {
         <el-menu-item index="/dashboard">系统概览</el-menu-item>
         <el-menu-item index="/users">用户管理</el-menu-item>
         <el-menu-item index="/banks">题库管理</el-menu-item>
+        <el-menu-item index="/questions">题目管理</el-menu-item>
         <el-menu-item index="/roles">角色权限</el-menu-item>
         <el-menu-item index="/audit-logs">审计日志</el-menu-item>
       </el-menu>

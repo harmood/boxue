@@ -22,6 +22,9 @@ pnpm dev:web
 - `/reset-password` 重置密码
 - `/dashboard` 学习概览
 - `/banks` 我的题库
+- `/banks/:bankId/questions` 题目列表
+- `/banks/:bankId/questions/new` 新建题目
+- `/banks/:bankId/questions/:questionId/edit` 编辑题目
 - `/practice` 练习占位页
 
 ## 认证行为
@@ -39,8 +42,16 @@ pnpm dev:web
 - 删除确认；题库非空时提示题目数并二次确认级联删除
 - 正确率暂无真实统计数据时显示 `--`
 
+## 题目页面能力
+
+- 题目列表：关键词、题型、状态筛选与游标分页
+- 单选题/多选题：选项增删与正确答案选择
+- 判断题：正确/错误选择
+- 填空题：多个空、每空多个可接受答案、大小写与首尾空白选项
+- 发布、归档、删除；编辑携带乐观锁 `version`
+
 ## 下一步
 
-- 题目编辑器
 - 公式与图片渲染
+- 题目批量导入
 - 练习引擎

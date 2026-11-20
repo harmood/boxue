@@ -964,6 +964,370 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
 
+  /banks/{bankId}/questions:
+    get:
+      tags: [Questions]
+      summary: 题库内题目列表
+      operationId: listBankQuestions
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/BankIdPath"
+        - name: type
+          in: query
+          required: false
+          schema:
+            $ref: "#/components/schemas/QuestionType"
+        - name: status
+          in: query
+          required: false
+          schema:
+            $ref: "#/components/schemas/QuestionStatus"
+        - name: q
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 200
+        - name: tagId
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+        - name: knowledgePointId
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: 题目分页
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuestionPage"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    post:
+      tags: [Questions]
+      summary: 创建题目
+      operationId: createQuestion
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/BankIdPath"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateQuestionRequest"
+      responses:
+        "201":
+          description: 创建成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuestionView"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /questions/search:
+    get:
+      tags: [Questions]
+      summary: 全局题目搜索
+      operationId: searchQuestions
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: q
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 200
+        - name: bankId
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+        - name: type
+          in: query
+          required: false
+          schema:
+            $ref: "#/components/schemas/QuestionType"
+        - name: status
+          in: query
+          required: false
+          schema:
+            $ref: "#/components/schemas/QuestionStatus"
+        - name: tagId
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+        - name: knowledgePointId
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: 题目分页
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuestionPage"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /questions/{questionId}:
+    get:
+      tags: [Questions]
+      summary: 题目详情
+      operationId: getQuestion
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/QuestionIdPath"
+      responses:
+        "200":
+          description: 题目
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuestionView"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    patch:
+      tags: [Questions]
+      summary: 更新题目
+      operationId: updateQuestion
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/QuestionIdPath"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateQuestionRequest"
+      responses:
+        "200":
+          description: 更新后的题目
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuestionView"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+    delete:
+      tags: [Questions]
+      summary: 删除题目
+      operationId: deleteQuestion
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/QuestionIdPath"
+      responses:
+        "204":
+          description: 删除成功
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /questions/{questionId}/versions:
+    get:
+      tags: [Questions]
+      summary: 题目历史版本
+      operationId: listQuestionVersions
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/QuestionIdPath"
+      responses:
+        "200":
+          description: 版本列表
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuestionVersionPage"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /questions/{questionId}/duplicate:
+    post:
+      tags: [Questions]
+      summary: 复制题目
+      operationId: duplicateQuestion
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/QuestionIdPath"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DuplicateQuestionRequest"
+      responses:
+        "201":
+          description: 复制后的题目
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuestionView"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /questions/{questionId}/publish:
+    post:
+      tags: [Questions]
+      summary: 发布题目
+      operationId: publishQuestion
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/QuestionIdPath"
+      responses:
+        "200":
+          description: 发布后的题目
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuestionView"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /questions/{questionId}/archive:
+    post:
+      tags: [Questions]
+      summary: 归档题目
+      operationId: archiveQuestion
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/QuestionIdPath"
+      responses:
+        "200":
+          description: 归档后的题目
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuestionView"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /admin/questions:
+    get:
+      tags: [Admin]
+      summary: 管理员查询题目
+      operationId: adminListQuestions
+      security:
+        - adminBearerAuth: []
+      parameters:
+        - name: q
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 200
+        - name: bankId
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+        - name: ownerId
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+        - name: type
+          in: query
+          required: false
+          schema:
+            $ref: "#/components/schemas/QuestionType"
+        - name: status
+          in: query
+          required: false
+          schema:
+            $ref: "#/components/schemas/QuestionStatus"
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: 题目分页
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminQuestionPage"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /admin/questions/{questionId}:
+    get:
+      tags: [Admin]
+      summary: 管理员查询题目详情
+      operationId: adminGetQuestion
+      security:
+        - adminBearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/QuestionIdPath"
+      responses:
+        "200":
+          description: 题目详情
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminQuestionView"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
 components:
   securitySchemes:
     bearerAuth:
@@ -1135,6 +1499,13 @@ components:
         type: string
         format: uuid
 
+    QuestionIdPath:
+      name: questionId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
   responses:
     BadRequest:
       description: 请求参数错误
@@ -1197,6 +1568,385 @@ components:
             $ref: "#/components/schemas/ApiError"
 
   schemas:
+    QuestionType:
+      type: string
+      enum: [SINGLE_CHOICE, MULTIPLE_CHOICE, TRUE_FALSE, FILL_BLANK]
+
+    QuestionStatus:
+      type: string
+      enum: [DRAFT, PUBLISHED, ARCHIVED]
+
+    ContentDoc:
+      type: object
+      required: [format, content]
+      additionalProperties: false
+      properties:
+        format:
+          type: string
+          enum: [MARKDOWN_LATEX]
+        content:
+          type: string
+          maxLength: 20000
+
+    QuestionOption:
+      type: object
+      required: [key, content]
+      additionalProperties: false
+      properties:
+        key:
+          type: string
+          maxLength: 10
+        content:
+          type: string
+          maxLength: 5000
+        mediaIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+
+    ChoiceAnswer:
+      type: object
+      required: [correctOptionKeys]
+      additionalProperties: false
+      properties:
+        correctOptionKeys:
+          type: array
+          minItems: 1
+          items:
+            type: string
+
+    TrueFalseAnswer:
+      type: object
+      required: [value]
+      additionalProperties: false
+      properties:
+        value:
+          type: boolean
+
+    ChoicePayload:
+      type: object
+      required: [options, answer]
+      additionalProperties: false
+      properties:
+        options:
+          type: array
+          minItems: 2
+          maxItems: 26
+          items:
+            $ref: "#/components/schemas/QuestionOption"
+        answer:
+          $ref: "#/components/schemas/ChoiceAnswer"
+        scoring:
+          type: string
+          enum: [ALL_OR_NOTHING]
+    TrueFalsePayload:
+      type: object
+      required: [answer]
+      additionalProperties: false
+      properties:
+        answer:
+          $ref: "#/components/schemas/TrueFalseAnswer"
+
+    FillBlankItem:
+      type: object
+      required: [id, acceptedAnswers]
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          maxLength: 50
+        acceptedAnswers:
+          type: array
+          minItems: 1
+          maxItems: 20
+          items:
+            type: string
+            maxLength: 500
+        caseSensitive:
+          type: boolean
+          default: false
+        trimWhitespace:
+          type: boolean
+          default: true
+
+    FillBlankPayload:
+      type: object
+      required: [blanks]
+      additionalProperties: false
+      properties:
+        blanks:
+          type: array
+          minItems: 1
+          maxItems: 50
+          items:
+            $ref: "#/components/schemas/FillBlankItem"
+
+    QuestionPayload:
+      oneOf:
+        - $ref: "#/components/schemas/ChoicePayload"
+        - $ref: "#/components/schemas/TrueFalsePayload"
+        - $ref: "#/components/schemas/FillBlankPayload"
+
+    QuestionView:
+      type: object
+      required: [id, bankId, type, status, stem, difficulty, tagIds, knowledgePointIds, payload, version, createdAt, updatedAt]
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          format: uuid
+        bankId:
+          type: string
+          format: uuid
+        type:
+          $ref: "#/components/schemas/QuestionType"
+        status:
+          $ref: "#/components/schemas/QuestionStatus"
+        stem:
+          $ref: "#/components/schemas/ContentDoc"
+        explanation:
+          oneOf:
+            - $ref: "#/components/schemas/ContentDoc"
+            - type: "null"
+        difficulty:
+          type: integer
+          minimum: 1
+          maximum: 5
+        mediaIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+        tagIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+        knowledgePointIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+        source:
+          type: [string, "null"]
+          maxLength: 200
+        payload:
+          $ref: "#/components/schemas/QuestionPayload"
+        version:
+          type: integer
+          minimum: 1
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    QuestionPage:
+      type: object
+      required: [items, hasMore]
+      additionalProperties: false
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/QuestionView"
+        nextCursor:
+          type: [string, "null"]
+        hasMore:
+          type: boolean
+
+    CreateQuestionRequest:
+      type: object
+      required: [type, stem, payload]
+      additionalProperties: false
+      properties:
+        type:
+          $ref: "#/components/schemas/QuestionType"
+        status:
+          $ref: "#/components/schemas/QuestionStatus"
+        stem:
+          $ref: "#/components/schemas/ContentDoc"
+        explanation:
+          oneOf:
+            - $ref: "#/components/schemas/ContentDoc"
+            - type: "null"
+        difficulty:
+          type: integer
+          minimum: 1
+          maximum: 5
+          default: 3
+        mediaIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+        tagIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+        knowledgePointIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+        source:
+          type: [string, "null"]
+          maxLength: 200
+        payload:
+          $ref: "#/components/schemas/QuestionPayload"
+
+    UpdateQuestionRequest:
+      type: object
+      required: [version]
+      additionalProperties: false
+      properties:
+        stem:
+          $ref: "#/components/schemas/ContentDoc"
+        explanation:
+          oneOf:
+            - $ref: "#/components/schemas/ContentDoc"
+            - type: "null"
+        difficulty:
+          type: integer
+          minimum: 1
+          maximum: 5
+        mediaIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+        tagIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+        knowledgePointIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+        source:
+          type: [string, "null"]
+          maxLength: 200
+        payload:
+          $ref: "#/components/schemas/QuestionPayload"
+        status:
+          $ref: "#/components/schemas/QuestionStatus"
+        version:
+          type: integer
+          minimum: 1
+
+    DuplicateQuestionRequest:
+      type: object
+      required: [targetBankId]
+      additionalProperties: false
+      properties:
+        targetBankId:
+          type: string
+          format: uuid
+        status:
+          $ref: "#/components/schemas/QuestionStatus"
+
+    QuestionVersionItem:
+      type: object
+      required: [versionNo, createdBy, createdAt]
+      additionalProperties: false
+      properties:
+        versionNo:
+          type: integer
+          minimum: 1
+        createdBy:
+          type: string
+          format: uuid
+        createdAt:
+          type: string
+          format: date-time
+
+    QuestionVersionPage:
+      type: object
+      required: [items]
+      additionalProperties: false
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/QuestionVersionItem"
+
+    AdminQuestionView:
+      type: object
+      required: [id, ownerId, ownerEmail, bankId, bankName, type, status, stem, difficulty, tagIds, knowledgePointIds, payload, version, createdAt, updatedAt]
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          format: uuid
+        ownerId:
+          type: string
+          format: uuid
+        ownerEmail:
+          type: string
+          format: email
+        bankId:
+          type: string
+          format: uuid
+        bankName:
+          type: string
+        type:
+          $ref: "#/components/schemas/QuestionType"
+        status:
+          $ref: "#/components/schemas/QuestionStatus"
+        stem:
+          $ref: "#/components/schemas/ContentDoc"
+        explanation:
+          oneOf:
+            - $ref: "#/components/schemas/ContentDoc"
+            - type: "null"
+        difficulty:
+          type: integer
+          minimum: 1
+          maximum: 5
+        tagIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+        knowledgePointIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+        source:
+          type: [string, "null"]
+          maxLength: 200
+        payload:
+          $ref: "#/components/schemas/QuestionPayload"
+        version:
+          type: integer
+          minimum: 1
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    AdminQuestionPage:
+      type: object
+      required: [items, hasMore]
+      additionalProperties: false
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdminQuestionView"
+        nextCursor:
+          type: [string, "null"]
+        hasMore:
+          type: boolean
+
     BankVisibility:
       type: string
       enum: [PRIVATE, UNLISTED, PUBLIC]

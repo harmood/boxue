@@ -7,6 +7,8 @@ import ForgotPasswordView from '../views/ForgotPasswordView.vue'
 import ResetPasswordView from '../views/ResetPasswordView.vue'
 import DashboardView from '../views/DashboardView.vue'
 import BankListView from '../views/BankListView.vue'
+import QuestionListView from '../views/QuestionListView.vue'
+import QuestionEditorView from '../views/QuestionEditorView.vue'
 import PracticeView from '../views/PracticeView.vue'
 import { useAuthStore } from '../stores/auth'
 
@@ -25,6 +27,9 @@ const router = createRouter({
         { path: '', redirect: '/dashboard' },
         { path: 'dashboard', name: 'dashboard', component: DashboardView },
         { path: 'banks', name: 'banks', component: BankListView },
+        { path: 'banks/:bankId/questions', name: 'bank-questions', component: QuestionListView },
+        { path: 'banks/:bankId/questions/new', name: 'question-create', component: QuestionEditorView },
+        { path: 'banks/:bankId/questions/:questionId/edit', name: 'question-edit', component: QuestionEditorView },
         { path: 'practice', name: 'practice', component: PracticeView }
       ]
     }

@@ -1213,6 +1213,30 @@ POST /api/v1/questions/{questionId}/archive
 ```http
 GET /api/v1/questions/search?q=&bankId=&type=&tagId=&knowledgePointId=&cursor=&limit=20
 ```
+### 9.11 管理员题目查询（只读）
+
+```http
+GET /api/v1/admin/questions?q=&bankId=&ownerId=&type=&status=&cursor=&limit=20
+GET /api/v1/admin/questions/{questionId}
+```
+
+- 需要 `AUD_admin` 管理员令牌与 `ROLE_ADMIN` 角色
+- 返回题目内容、题型 payload、所属题库与所有者邮箱
+
+### 9.12 四种题型校验规则
+
+| 题型 | payload 必填 | 校验 |
+| --- | --- | --- |
+| `SINGLE_CHOICE` | `options`、`answer.correctOptionKeys` | 2-26 个选项，key 唯一，恰好 1 个正确选项 |
+| `MULTIPLE_CHOICE` | `options`、`answer.correctOptionKeys` | 2-26 个选项，key 唯一，至少 1 个正确选项 |
+| `TRUE_FALSE` | `answer.value` | 必须为布尔值 |
+| `FILL_BLANK` | `blanks` | 1-50 个空，空 id 唯一，每个空 1-20 个可接受答案 |
+
+- `stem`、`explanation` 的 `format` 仅支持 `MARKDOWN_LATEX`
+- 题目创建/更新/发布/归档都会写入 `qb_question_version` 快照
+- 更新必须携带当前 `version`，冲突返回 `409 QUESTION_VERSION_CONFLICT`
+- 删除为软删除并写入 `QUESTION` 同步墓碑
+
 ---
 
 ## 10. 标签与知识点
