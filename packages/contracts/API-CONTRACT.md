@@ -954,7 +954,17 @@ DELETE /api/v1/banks/{bankId}
 - 需要确认题库为空，或指定 `?cascade=true`
 - 删除写入同步墓碑
 
-### 8.7 题库内题目列表
+### 8.7 管理员题库查询（只读）
+
+```http
+GET /api/v1/admin/banks?q=&ownerId=&status=&visibility=&cursor=&limit=20
+GET /api/v1/admin/banks/{bankId}
+```
+
+- 需要 `AUD_admin` 管理员令牌与 `ROLE_ADMIN` 角色
+- 返回 `AdminBankView`：额外包含 `ownerId`、`ownerEmail`，不返回练习统计
+
+### 8.8 题库内题目列表
 
 ```http
 GET /api/v1/banks/{bankId}/questions?type=&status=&tagId=&knowledgePointId=&q=&cursor=&limit=20

@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import com.boxue.api.admin.AdminException;
+import com.boxue.api.content.ContentException;
 import com.boxue.api.auth.AuthException;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -49,6 +50,15 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(AdminException.class)
     public ResponseEntity<ApiError> handleAdmin(
         AdminException exception,
+        HttpServletRequest request
+    ) {
+        return error(exception.status(), exception.code(), exception.getMessage(),
+            exception.details(), request);
+    }
+
+    @ExceptionHandler(ContentException.class)
+    public ResponseEntity<ApiError> handleContent(
+        ContentException exception,
         HttpServletRequest request
     ) {
         return error(exception.status(), exception.code(), exception.getMessage(),

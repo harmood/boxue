@@ -383,3 +383,27 @@
 - 没有引入多租户、数据权限、菜单管理等超出第一阶段的能力
 - 没有复制其 Vue 2 或复杂权限树实现
 - 保持博学自己的 OpenAPI、游标分页和 RBAC 契约
+
+## 8. 题库 CRUD 实现参考（2026-11-20）
+
+题库 CRUD 的 API、Web 页面与 Admin 只读页面参考了以下开源项目：
+
+| 参考项目 | 借鉴点 | 博学落地 |
+| --- | --- | --- |
+| Moodle Question Bank | 题库作为题目容器；列表中展示题目数量；删除前提示内容非空 | `qb_bank` + `questionCount`；`BANK_NOT_EMPTY` + `cascade=true` 二次确认 |
+| Anki | 牌组（Deck）列表展示卡片数量与最近更新时间；归档而非物理删除 | 题库列表展示题目数、更新时间；`ACTIVE/ARCHIVED` 状态与软删除 |
+| eladmin | 搜索表单 + 表格 + 新建/编辑 Dialog + 删除确认 | Web `BankListView`；Admin `BanksView` 只读列表 + 详情 Drawer |
+| ruoyi-vue-pro | 后台列表按所有者、状态筛选；操作留审计 | Admin 支持 `ownerId/status/visibility` 筛选；写操作记录 `BANK_CREATED/BANK_UPDATED/BANK_DELETED` |
+
+### 8.1 关键取舍
+
+- 采用 Moodle 的“题库是题目容器”模型，但不引入其复杂分类树与课程上下文。
+- 采用 Anki 的“归档优先、删除需确认”思路，但删除仍保留同步墓碑，便于多端收敛。
+- 采用 eladmin 的 Dialog/Drawer 交互，但保持博学自己的 OpenAPI 契约、游标分页和乐观锁。
+- 未采用 ruoyi 的代码生成器与多租户数据权限，避免第一阶段过度设计。
+
+### 8.2 与开源项目的差异
+
+- 博学题库名称在同一用户下忽略大小写唯一，开源项目多数允许重名。
+- 博学更新使用 `version` 乐观锁，冲突返回 `409`，不静默覆盖。
+- 删除题库默认拒绝非空题库，需显式 `cascade=true`，避免误删题目。

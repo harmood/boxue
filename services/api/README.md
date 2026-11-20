@@ -49,6 +49,12 @@ V2__seed_roles_and_permissions.sql
 - `POST /api/v1/admin/auth/login`
 - `POST /api/v1/admin/auth/refresh`
 - `GET /api/v1/admin/auth/me`
+- `GET /api/v1/admin/users` / `GET /api/v1/admin/users/{userId}` / `PATCH /api/v1/admin/users/{userId}`
+- `PUT /api/v1/admin/users/{userId}/roles` / `POST /api/v1/admin/users/{userId}/force-logout` / `POST /api/v1/admin/users/{userId}/password-reset`
+- `GET/POST /api/v1/admin/roles` / `PUT/DELETE /api/v1/admin/roles/{roleId}` / `GET /api/v1/admin/permissions`
+- `GET /api/v1/admin/audit-logs`
+- `GET/POST /api/v1/banks` / `GET/PATCH/DELETE /api/v1/banks/{bankId}`（乐观锁 `version`，删除支持 `cascade`）
+- `GET /api/v1/admin/banks` / `GET /api/v1/admin/banks/{bankId}`（只读）
 - `GET /api/v1/sync/status`（占位）
 - `GET /api/v1/admin/ping`（需要 ADMIN 角色）
 
@@ -72,7 +78,7 @@ common     通用配置、错误处理、安全
 ## 说明
 
 - 数据库结构由 Flyway 管理，JPA `ddl-auto: none`。
-- 当前安全配置是骨架，JWT 过滤器、RBAC 权限校验和注册登录逻辑待实现。
+- JWT 过滤器、RBAC 权限校验、注册登录、邮箱验证、密码重置与管理员管理接口均已实现。
 - 本地开发默认管理员：`admin / admin`，仅用于骨架验证，生产环境必须修改。
 - 数据库设计见 `services/api/docs/DATABASE-DESIGN.md`。
 - API 契约见 `packages/contracts/API-CONTRACT.md`。

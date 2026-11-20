@@ -72,6 +72,7 @@ public class SecurityConfig {
                 ).permitAll()
                 .requestMatchers("/api/v1/admin/**").access(
                     new WebExpressionAuthorizationManager("hasAuthority('AUD_admin') and hasRole('ADMIN')"))
+                .requestMatchers("/api/v1/banks/**").hasAuthority("AUD_client")
                 .requestMatchers(
                     "/api/v1/auth/logout",
                     "/api/v1/auth/logout-all",

@@ -765,6 +765,205 @@ paths:
         "403":
           $ref: "#/components/responses/Forbidden"
 
+  /banks:
+    get:
+      tags: [Banks]
+      summary: 查询当前用户题库
+      operationId: listBanks
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [ACTIVE, ARCHIVED]
+        - name: q
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 200
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: 题库分页
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BankPage"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    post:
+      tags: [Banks]
+      summary: 创建题库
+      operationId: createBank
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateBankRequest"
+      responses:
+        "201":
+          description: 创建成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BankView"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /banks/{bankId}:
+    get:
+      tags: [Banks]
+      summary: 获取题库详情
+      operationId: getBank
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/BankIdPath"
+      responses:
+        "200":
+          description: 题库
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BankView"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    patch:
+      tags: [Banks]
+      summary: 更新题库
+      operationId: updateBank
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/BankIdPath"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateBankRequest"
+      responses:
+        "200":
+          description: 更新后的题库
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BankView"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+    delete:
+      tags: [Banks]
+      summary: 删除题库
+      operationId: deleteBank
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/BankIdPath"
+        - name: cascade
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
+      responses:
+        "204":
+          description: 删除成功
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /admin/banks:
+    get:
+      tags: [Admin]
+      summary: 管理员查询题库
+      operationId: adminListBanks
+      security:
+        - adminBearerAuth: []
+      parameters:
+        - name: q
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 200
+        - name: ownerId
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [ACTIVE, ARCHIVED]
+        - name: visibility
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [PRIVATE, UNLISTED, PUBLIC]
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: 题库分页
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminBankPage"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /admin/banks/{bankId}:
+    get:
+      tags: [Admin]
+      summary: 管理员查询题库详情
+      operationId: adminGetBank
+      security:
+        - adminBearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/BankIdPath"
+      responses:
+        "200":
+          description: 题库详情
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminBankView"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
 components:
   securitySchemes:
     bearerAuth:
@@ -928,6 +1127,14 @@ components:
         type: string
         format: date-time
 
+    BankIdPath:
+      name: bankId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
   responses:
     BadRequest:
       description: 请求参数错误
@@ -990,6 +1197,150 @@ components:
             $ref: "#/components/schemas/ApiError"
 
   schemas:
+    BankVisibility:
+      type: string
+      enum: [PRIVATE, UNLISTED, PUBLIC]
+
+    BankStatus:
+      type: string
+      enum: [ACTIVE, ARCHIVED]
+
+    BankView:
+      type: object
+      required: [id, name, visibility, status, questionCount, practicedCount, accuracy, version, createdAt, updatedAt]
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          maxLength: 200
+        description:
+          type: [string, "null"]
+          maxLength: 5000
+        visibility:
+          $ref: "#/components/schemas/BankVisibility"
+        status:
+          $ref: "#/components/schemas/BankStatus"
+        questionCount:
+          type: integer
+          minimum: 0
+        practicedCount:
+          type: integer
+          minimum: 0
+        accuracy:
+          type: number
+          minimum: 0
+          maximum: 1
+        version:
+          type: integer
+          minimum: 1
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    BankPage:
+      type: object
+      required: [items, hasMore]
+      additionalProperties: false
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/BankView"
+        nextCursor:
+          type: [string, "null"]
+        hasMore:
+          type: boolean
+
+    CreateBankRequest:
+      type: object
+      required: [name]
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        description:
+          type: [string, "null"]
+          maxLength: 5000
+        visibility:
+          $ref: "#/components/schemas/BankVisibility"
+
+    UpdateBankRequest:
+      type: object
+      required: [version]
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        description:
+          type: [string, "null"]
+          maxLength: 5000
+        status:
+          $ref: "#/components/schemas/BankStatus"
+        version:
+          type: integer
+          minimum: 1
+
+    AdminBankView:
+      type: object
+      required: [id, ownerId, ownerEmail, name, visibility, status, questionCount, version, createdAt, updatedAt]
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          format: uuid
+        ownerId:
+          type: string
+          format: uuid
+        ownerEmail:
+          type: string
+          format: email
+        name:
+          type: string
+          maxLength: 200
+        description:
+          type: [string, "null"]
+          maxLength: 5000
+        visibility:
+          $ref: "#/components/schemas/BankVisibility"
+        status:
+          $ref: "#/components/schemas/BankStatus"
+        questionCount:
+          type: integer
+          minimum: 0
+        version:
+          type: integer
+          minimum: 1
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    AdminBankPage:
+      type: object
+      required: [items, hasMore]
+      additionalProperties: false
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdminBankView"
+        nextCursor:
+          type: [string, "null"]
+        hasMore:
+          type: boolean
+
     UserStatus:
       type: string
       enum: [PENDING_VERIFICATION, ACTIVE, DISABLED, LOCKED, DELETED]
