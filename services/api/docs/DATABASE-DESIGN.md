@@ -1,8 +1,8 @@
 # 博学（Boxue）数据库设计
 
-> 状态：第一版设计草案  
-> 数据库：PostgreSQL 16+  
-> 关联文档：[project-charter.md](project-charter.md)、[api-contract.md](api-contract.md)
+> 状态：第一版设计草案
+> 数据库：PostgreSQL 17+
+> 关联文档：[项目整体介绍](../../../docs/project-overview.md)、[API 契约](../../../packages/contracts/API-CONTRACT.md)
 
 ---
 

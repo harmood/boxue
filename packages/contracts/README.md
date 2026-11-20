@@ -4,8 +4,8 @@
 
 完整接口设计见：
 
-- `docs/api-contract.md`
-- `docs/database-design.md`
+- `packages/contracts/API-CONTRACT.md`
+- `services/api/docs/DATABASE-DESIGN.md`
 
 后续应按 API 文档逐步补齐：
 

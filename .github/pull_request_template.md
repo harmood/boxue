@@ -60,7 +60,7 @@ flutter analyze
 flutter test
 ```
 
-同步相关 PR 必须覆盖 `docs/api-contract.md` §17.10 的场景：
+同步相关 PR 必须覆盖 `packages/contracts/API-CONTRACT.md` §17.10 的场景：
 
 - [ ] 首次全量同步
 - [ ] 离线编辑后恢复
@@ -79,7 +79,7 @@ flutter test
 
 - [ ] 所有用户数据查询都带 `owner_id`
 - [ ] 接口已声明权限码
-- [ ] 错误码复用 `docs/api-contract.md`
+- [ ] 错误码复用 `packages/contracts/API-CONTRACT.md`
 - [ ] 日志未输出密码 / Token / 题干全文
 - [ ] 无密钥、无调试代码、无大文件
 - [ ] 文档 / ADR 已更新

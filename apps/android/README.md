@@ -34,7 +34,7 @@ flutter build apk --debug
 ## 已知事项
 
 - `sqlite3` 原生库默认从 GitHub Releases 下载；网络受限时参考
-  `docs/environment-setup.md` 的 SQLite 原生库下载说明。
+  `docs/operations-deployment.md` 的 SQLite 原生库下载说明。
 - `workmanager_android` 目前仍会给出 Kotlin Gradle Plugin 非致命警告。
 
 ## 下一步

@@ -135,13 +135,16 @@ pnpm sdk:gen
 
 ## 文档
 
-- [项目主文档](docs/project-charter.md)
-- [数据库设计](docs/database-design.md)
-- [API 契约](docs/api-contract.md)
-- [本地开发环境](docs/environment-setup.md)
-- [开发流程](docs/development-workflow.md)
-- [架构决策记录](docs/adr/README.md)
-- [Docker 部署记录](docs/docker-deployment.md)
+三份主文档：
+
+- [项目整体介绍](docs/project-overview.md)
+- [开发计划书](docs/development-plan.md)
+- [项目运维和部署文档](docs/operations-deployment.md)
+
+参考规格：
+
+- [API 契约](packages/contracts/API-CONTRACT.md)
+- [数据库设计](services/api/docs/DATABASE-DESIGN.md)
 - [文档索引](docs/README.md)
 
 ## 当前阶段

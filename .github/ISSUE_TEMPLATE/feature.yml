@@ -6,7 +6,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        请先阅读 `docs/development-workflow.md` 第 5 节（任务准入）。
+        请先阅读 `docs/development-plan.md` 第 7 节（任务准入）。
         信息不完整的 Issue 会被退回补充。
 
   - type: textarea

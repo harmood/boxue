@@ -3,7 +3,7 @@
 > 状态：第一版设计草案  
 > 风格：REST + JSON  
 > 基础路径：`/api/v1`  
-> 关联文档：[project-charter.md](project-charter.md)、[database-design.md](database-design.md)
+> 关联文档：[项目整体介绍](../../docs/project-overview.md)、[数据库设计](../../services/api/docs/DATABASE-DESIGN.md)
 
 ---
 

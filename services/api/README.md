@@ -52,5 +52,5 @@ common     通用配置、错误处理、安全
 - 数据库结构由 Flyway 管理，JPA `ddl-auto: none`。
 - 当前安全配置是骨架，JWT 过滤器、RBAC 权限校验和注册登录逻辑待实现。
 - 本地开发默认管理员：`admin / admin`，仅用于骨架验证，生产环境必须修改。
-- 数据库设计见 `docs/database-design.md`。
-- API 契约见 `docs/api-contract.md`。
+- 数据库设计见 `services/api/docs/DATABASE-DESIGN.md`。
+- API 契约见 `packages/contracts/API-CONTRACT.md`。

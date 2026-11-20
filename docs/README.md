@@ -1,43 +1,71 @@
 # 博学（Boxue）文档索引
 
-| 文档 | 说明 |
-| --- | --- |
-| [project-charter.md](project-charter.md) | 项目主文档：目标、平台职责、功能范围、技术架构、路线图 |
-| [database-design.md](database-design.md) | PostgreSQL 数据库设计：表结构、索引、约束、DDL |
-| [api-contract.md](api-contract.md) | REST API 契约：认证、用户、题库、练习、同步、管理后台、AI 预留 |
-| [environment-setup.md](environment-setup.md) | 本地工具链、环境激活、验证结果与已知问题 |
-| [development-workflow.md](development-workflow.md) | 开发流程：分支、契约、迁移、测试、CI、评审、发布与迭代 |
-| [adr/README.md](adr/README.md) | 架构决策记录规范与模板 |
-| [sprint-0-report.md](sprint-0-report.md) | Sprint 0 执行记录、验证结果与已知问题 |
-| [docker-deployment.md](docker-deployment.md) | Docker Desktop/WSL2 安装、镜像加速、问题处理与验证 |
-| [product-analysis.md](product-analysis.md) | 早期产品分析稿，已被项目主文档取代 |
+> 更新日期：2026-11-20
+> 文档集：三份主文档 + 两份参考规格
 
-## 当前阶段
+---
 
-- 刷题与题库建设
-- 开放注册与 RBAC
-- Web / Electron / Flutter Android 三端同步
-- 单选、多选、判断、填空
-- 图片与 LaTeX 公式
-- AI 只预留接口，不启用
+## 1. 三份主文档
 
-## 当前骨架
+| 文档 | 定位 | 主要读者 | 何时更新 |
+| --- | --- | --- | --- |
+| [项目整体介绍](project-overview.md) | 产品定位、范围、角色、功能、架构、技术选型、数据/API 总览、路线图、风险 | 所有人 | 范围、架构、技术选型、数据/API 总览变化 |
+| [开发计划书](development-plan.md) | 开发流程、分支规范、DoR/DoD、测试、CI、评审、Sprint 计划、当前进度 | 开发、测试 | 流程、迭代、质量门禁变化 |
+| [项目运维和部署文档](operations-deployment.md) | 环境、工具链、Docker、数据库、监控、发布、回滚、故障排查 | 开发、运维 | 环境、部署、运维、故障处理变化 |
 
-- Vue 3 Web：已建立
-- Vue 3 管理后台：已建立
-- Electron 桌面端：已建立
-- Flutter Android：已建立并生成 Android 平台目录
-- Spring Boot 后端：已建立
-- OpenAPI 骨架：已建立
-- Docker Compose 基础设施：已建立
-- CI：已建立
+---
 
-## 下一步
+## 2. 参考规格
 
-1. 实现注册、登录、刷新、RBAC 与管理员引导（Sprint 1）
-2. 补齐 OpenAPI Auth / User / Admin 端点
-3. 实现题库 CRUD 与四种题型
-4. 实现 Web → Android → 桌面端的第一条同步垂直切片
-5. 完善同步冲突与离线场景测试
+这两份是随代码演进的详细规格，不属于三份主文档，但与主文档互相引用：
 
-Sprint 0 已完成，详见 [sprint-0-report.md](sprint-0-report.md)。
+| 文档 | 位置 | 说明 |
+| --- | --- | --- |
+| API 契约说明 | `packages/contracts/API-CONTRACT.md` | 端点、字段、错误码、同步协议 |
+| OpenAPI | `packages/contracts/openapi.yaml` | 机器可读契约，客户端类型由此生成 |
+| 数据库设计 | `services/api/docs/DATABASE-DESIGN.md` | 表、字段、索引、约束、DDL |
+| Flyway 迁移 | `services/api/src/main/resources/db/migration/` | 实际数据库结构 |
+
+---
+
+## 3. 快速导航
+
+### 我想了解项目
+
+- 项目是做什么的 → [项目整体介绍](project-overview.md)
+- 现在做到哪一步 → [开发计划书](development-plan.md) 第 2 节
+- 技术栈和架构 → [项目整体介绍](project-overview.md) 第 8-9 节
+- 数据表和接口 → [数据库设计](../services/api/docs/DATABASE-DESIGN.md) / [API 契约](../packages/contracts/API-CONTRACT.md)
+
+### 我要开始开发
+
+- 环境怎么装 → [项目运维和部署文档](operations-deployment.md) 第 2-4 节
+- 怎么启动 → [项目运维和部署文档](operations-deployment.md) 第 4 节
+- 开发流程 → [开发计划书](development-plan.md) 第 8 节
+- 什么算完成 → [开发计划书](development-plan.md) 第 15 节
+
+### 我要部署/排障
+
+- Docker 怎么装 → [项目运维和部署文档](operations-deployment.md) 第 7 节
+- 数据库/迁移 → [项目运维和部署文档](operations-deployment.md) 第 6 节
+- 监控和日志 → [项目运维和部署文档](operations-deployment.md) 第 8 节
+- 故障处理 → [项目运维和部署文档](operations-deployment.md) 第 11 节
+
+---
+
+## 4. 当前状态
+
+- Sprint 0 已完成
+- 三端骨架、后端、契约、Flyway、CI、Docker 已建立
+- 当前进入 Sprint 1：认证、RBAC 与管理员引导
+- 详细待办见 [开发计划书](development-plan.md) 第 22 节；缺口清单见第 24 节
+
+---
+
+## 5. 文档维护规则
+
+1. 三份主文档是唯一入口，新增文档前先判断能否并入现有章节。
+2. API/数据库详细规格跟随代码目录，不重复复制到主文档。
+3. 代码、契约、迁移、部署方式变化时，同一 PR 更新对应文档。
+4. 架构决策使用 ADR，模板见 [开发计划书](development-plan.md) 第 17.2 节。
+5. 历史文档已合并到三份主文档，Git 历史中仍可追溯。

@@ -14,6 +14,6 @@ public class OpenApiConfig {
         return new OpenAPI().info(new Info()
             .title("博学 API")
             .version("v1")
-            .description("博学多端学习平台业务 API。详细契约见 docs/api-contract.md。"));
+            .description("博学多端学习平台业务 API。详细契约见 packages/contracts/API-CONTRACT.md。"));
     }
 }
