@@ -154,11 +154,24 @@ public class BankRepository {
             """, id, ownerId);
     }
 
+    public List<UUID> findQuestionIds(UUID bankId) {
+        return jdbc.queryForList("""
+            SELECT id FROM qb_question WHERE bank_id = ? AND deleted_at IS NULL
+            """, UUID.class, bankId);
+    }
+
     public void softDeleteQuestions(UUID bankId) {
         jdbc.update("""
             UPDATE qb_question SET deleted_at = now(), updated_at = now()
             WHERE bank_id = ? AND deleted_at IS NULL
             """, bankId);
+    }
+
+    public void insertQuestionTombstone(UUID ownerId, UUID questionId, String payloadJson) {
+        jdbc.update("""
+            INSERT INTO sync_change (owner_id, entity_type, entity_id, operation, payload)
+            VALUES (?, 'QUESTION', ?, 'DELETE', ?::jsonb)
+            """, ownerId, questionId, payloadJson);
     }
 
     public void insertSyncTombstone(UUID ownerId, UUID bankId, String payloadJson) {

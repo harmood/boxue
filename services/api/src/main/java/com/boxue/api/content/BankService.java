@@ -63,7 +63,7 @@ public class BankService {
             throw new ContentException(HttpStatus.CONFLICT, "BANK_NAME_EXISTS", "题库名称已存在");
         }
         UUID bankId = UUID.randomUUID();
-        repository.insertBank(bankId, ownerId, name, request.description(), visibility);
+        repository.insertBank(bankId, ownerId, name, trimToNull(request.description()), visibility);
         auditService.log(ownerId, "BANK_CREATED", "BANK", bankId.toString(),
             Map.of("name", name, "visibility", visibility), httpRequest);
         return toView(requireBank(ownerId, bankId));
@@ -86,7 +86,8 @@ public class BankService {
         if (!StringUtils.hasText(name)) {
             throw new ContentException(HttpStatus.BAD_REQUEST, "BANK_NAME_REQUIRED", "题库名称不能为空");
         }
-        String description = request.description() != null ? request.description() : existing.description();
+        String description = request.description() != null
+            ? trimToNull(request.description()) : existing.description();
         String status = StringUtils.hasText(request.status()) ? request.status() : existing.status();
         if (!List.of("ACTIVE", "ARCHIVED").contains(status)) {
             throw new ContentException(HttpStatus.BAD_REQUEST, "BANK_INVALID_STATUS", "题库状态不合法");
@@ -114,6 +115,9 @@ public class BankService {
                 Map.of("questionCount", questionCount));
         }
         if (cascade && questionCount > 0) {
+            for (UUID questionId : repository.findQuestionIds(bankId)) {
+                repository.insertQuestionTombstone(ownerId, questionId, "{\"deletedBy\":\"BANK_CASCADE\"}");
+            }
             repository.softDeleteQuestions(bankId);
         }
         repository.softDeleteBank(bankId, ownerId);
@@ -162,6 +166,10 @@ public class BankService {
             row.id(), row.ownerId(), row.ownerEmail(), row.name(), row.description(),
             row.visibility(), row.status(), repository.countQuestions(row.id()), row.version(),
             row.createdAt(), row.updatedAt());
+    }
+
+    private String trimToNull(String value) {
+        return StringUtils.hasText(value) ? value.trim() : null;
     }
 
     private String tombstonePayload() {

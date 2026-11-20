@@ -44,6 +44,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     }
 
     private void authenticate(Claims claims) {
+        try {
+            authenticateUnsafe(claims);
+        } catch (RuntimeException ex) {
+            SecurityContextHolder.clearContext();
+        }
+    }
+
+    private void authenticateUnsafe(Claims claims) {
         String sid = claims.get("sid", String.class);
         if (sid == null) {
             return;
@@ -67,7 +75,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         for (String permission : permissions) {
             authorities.add(new SimpleGrantedAuthority(permission));
         }
-        String audience = claims.getAudience().stream().findFirst().orElse("client");
+        String audience = claims.getAudience() == null
+            ? "client" : claims.getAudience().stream().findFirst().orElse("client");
         authorities.add(new SimpleGrantedAuthority("AUD_" + audience));
 
         AuthPrincipal principal = new AuthPrincipal(

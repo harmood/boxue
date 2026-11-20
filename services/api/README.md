@@ -25,6 +25,8 @@ mvn spring-boot:run
 ```text
 V1__init_schema.sql
 V2__seed_roles_and_permissions.sql
+V3__question_media.sql
+V4__session_audience.sql
 ```
 
 ## 当前接口

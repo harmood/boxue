@@ -241,7 +241,9 @@ extensions: citext, pg_trgm, pgcrypto, uuid-ossp
 ```text
 services/api/src/main/resources/db/migration/
 ├─ V1__init_schema.sql
-└─ V2__seed_roles_and_permissions.sql
+├─ V2__seed_roles_and_permissions.sql
+├─ V3__question_media.sql
+└─ V4__session_audience.sql
 ```
 
 规则：

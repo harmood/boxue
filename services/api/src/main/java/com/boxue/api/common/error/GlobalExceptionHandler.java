@@ -11,7 +11,10 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -38,6 +41,18 @@ public class GlobalExceptionHandler {
             details.put(error.getField(), error.getDefaultMessage());
         }
         return error(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "请求参数不合法", details, request);
+    }
+
+    @ExceptionHandler({
+        HttpMessageNotReadableException.class,
+        MethodArgumentTypeMismatchException.class,
+        MissingServletRequestParameterException.class
+    })
+    public ResponseEntity<ApiError> handleMalformedRequest(
+        Exception exception,
+        HttpServletRequest request
+    ) {
+        return error(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "请求参数不合法", Map.of(), request);
     }
 
     @ExceptionHandler(AuthException.class)
@@ -97,7 +112,7 @@ public class GlobalExceptionHandler {
         IllegalArgumentException exception,
         HttpServletRequest request
     ) {
-        return error(HttpStatus.BAD_REQUEST, "BAD_REQUEST", exception.getMessage(), Map.of(), request);
+        return error(HttpStatus.BAD_REQUEST, "BAD_REQUEST", "请求参数不合法", Map.of(), request);
     }
 
     @ExceptionHandler(Exception.class)

@@ -1,5 +1,14 @@
 const baseUrl = import.meta.env.VITE_API_BASE_URL ?? '/api/v1'
 const tokenKey = 'boxue.accessToken'
+const noRefreshPaths = [
+  '/auth/login',
+  '/auth/register',
+  '/auth/refresh',
+  '/auth/verify-email',
+  '/auth/resend-verification',
+  '/auth/forgot-password',
+  '/auth/reset-password'
+]
 
 export interface ApiErrorBody {
   code: string
@@ -84,7 +93,7 @@ export async function apiFetch<T>(
     credentials: 'include'
   })
 
-  if (response.status === 401 && allowRefresh && !path.startsWith('/auth/')) {
+  if (response.status === 401 && allowRefresh && !noRefreshPaths.some((item) => path.startsWith(item))) {
     if (await refreshAccessToken()) {
       return apiFetch<T>(path, init, false)
     }

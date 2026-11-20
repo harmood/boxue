@@ -5,6 +5,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.LinkedHashSet;
+import java.util.Locale;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -88,7 +89,7 @@ public class QuestionService {
     public QuestionView create(UUID ownerId, UUID bankId, CreateQuestionRequest request,
                                HttpServletRequest httpRequest) {
         requireBank(ownerId, bankId);
-        String type = request.type().trim().toUpperCase();
+        String type = request.type().trim().toUpperCase(Locale.ROOT);
         validator.validateType(type);
         String status = normalizeStatus(request.status(), "DRAFT");
         validateContentDoc(request.stem(), "stem");
@@ -110,9 +111,10 @@ public class QuestionService {
         repository.replaceMedia(questionId, mediaIds);
         repository.replaceTags(questionId, tagIds);
         repository.replaceKnowledgePoints(questionId, knowledgePointIds);
-        repository.insertVersion(questionId, 1, snapshot(type, request.stem(), request.explanation(),
-            difficulty, payload, mediaIds, tagIds, knowledgePointIds, request.source(), status), ownerId);
-        repository.insertSyncChange(ownerId, questionId, 1, syncPayload(1));
+        String snapshotJson = snapshot(type, request.stem(), request.explanation(),
+            difficulty, payload, mediaIds, tagIds, knowledgePointIds, request.source(), status);
+        repository.insertVersion(questionId, 1, snapshotJson, ownerId);
+        repository.insertSyncChange(ownerId, questionId, 1, snapshotJson);
         auditService.log(ownerId, "QUESTION_CREATED", "QUESTION", questionId.toString(),
             Map.of("bankId", bankId.toString(), "type", type, "status", status), httpRequest);
         return toView(requireQuestion(ownerId, questionId));
@@ -166,9 +168,10 @@ public class QuestionService {
         List<UUID> finalMediaIds = repository.findMediaIds(questionId);
         List<UUID> finalTagIds = repository.findTagIds(questionId);
         List<UUID> finalKnowledgePointIds = repository.findKnowledgePointIds(questionId);
-        repository.insertVersion(questionId, saved.version(), snapshot(saved.type(), stem, explanation,
-            difficulty, payload, finalMediaIds, finalTagIds, finalKnowledgePointIds, source, status), ownerId);
-        repository.insertSyncChange(ownerId, questionId, saved.version(), syncPayload(saved.version()));
+        String snapshotJson = snapshot(saved.type(), stem, explanation,
+            difficulty, payload, finalMediaIds, finalTagIds, finalKnowledgePointIds, source, status);
+        repository.insertVersion(questionId, saved.version(), snapshotJson, ownerId);
+        repository.insertSyncChange(ownerId, questionId, saved.version(), snapshotJson);
         auditService.log(ownerId, "QUESTION_UPDATED", "QUESTION", questionId.toString(),
             Map.of("version", saved.version(), "status", status), httpRequest);
         return toView(saved);
@@ -213,9 +216,10 @@ public class QuestionService {
         repository.replaceMedia(newId, mediaIds);
         repository.replaceTags(newId, tagIds);
         repository.replaceKnowledgePoints(newId, knowledgePointIds);
-        repository.insertVersion(newId, 1, snapshot(source.type(), stem, explanation, source.difficulty(),
-            payload, mediaIds, tagIds, knowledgePointIds, source.source(), status), ownerId);
-        repository.insertSyncChange(ownerId, newId, 1, syncPayload(1));
+        String snapshotJson = snapshot(source.type(), stem, explanation, source.difficulty(),
+            payload, mediaIds, tagIds, knowledgePointIds, source.source(), status);
+        repository.insertVersion(newId, 1, snapshotJson, ownerId);
+        repository.insertSyncChange(ownerId, newId, 1, snapshotJson);
         auditService.log(ownerId, "QUESTION_DUPLICATED", "QUESTION", newId.toString(),
             Map.of("sourceId", questionId.toString(), "targetBankId", request.targetBankId().toString()),
             httpRequest);
@@ -267,9 +271,10 @@ public class QuestionService {
         List<UUID> mediaIds = repository.findMediaIds(questionId);
         List<UUID> tagIds = repository.findTagIds(questionId);
         List<UUID> knowledgePointIds = repository.findKnowledgePointIds(questionId);
-        repository.insertVersion(questionId, saved.version(), snapshot(saved.type(), stem, explanation,
-            saved.difficulty(), payload, mediaIds, tagIds, knowledgePointIds, saved.source(), status), ownerId);
-        repository.insertSyncChange(ownerId, questionId, saved.version(), syncPayload(saved.version()));
+        String snapshotJson = snapshot(saved.type(), stem, explanation,
+            saved.difficulty(), payload, mediaIds, tagIds, knowledgePointIds, saved.source(), status);
+        repository.insertVersion(questionId, saved.version(), snapshotJson, ownerId);
+        repository.insertSyncChange(ownerId, questionId, saved.version(), snapshotJson);
         auditService.log(ownerId, action, "QUESTION", questionId.toString(),
             Map.of("status", status, "version", saved.version()), httpRequest);
         return toView(saved);
@@ -324,7 +329,7 @@ public class QuestionService {
     }
 
     private String normalizeStatus(String status, String fallback) {
-        String value = StringUtils.hasText(status) ? status.trim().toUpperCase() : fallback;
+        String value = StringUtils.hasText(status) ? status.trim().toUpperCase(Locale.ROOT) : fallback;
         if (!STATUSES.contains(value)) {
             throw new ContentException(HttpStatus.BAD_REQUEST, "QUESTION_INVALID_STATUS", "题目状态不合法");
         }
@@ -407,10 +412,6 @@ public class QuestionService {
         node.set("knowledgePointIds", objectMapper.valueToTree(knowledgePointIds));
         node.put("source", source);
         return toJson(node);
-    }
-
-    private String syncPayload(int version) {
-        return "{\"entityVersion\":" + version + "}";
     }
 
     private String tombstonePayload() {

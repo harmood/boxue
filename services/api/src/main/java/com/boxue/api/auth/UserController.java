@@ -10,7 +10,6 @@ import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -54,10 +53,8 @@ public class UserController {
     }
 
     @GetMapping("/devices")
-    public DeviceListResponse devices(
-            @AuthenticationPrincipal AuthPrincipal principal,
-            @RequestHeader(value = "X-Device-Id", required = false) UUID deviceId) {
-        return authService.listDevices(principal.userId(), deviceId);
+    public DeviceListResponse devices(@AuthenticationPrincipal AuthPrincipal principal) {
+        return authService.listDevices(principal.userId(), principal.deviceId());
     }
 
     @DeleteMapping("/devices/{deviceId}")

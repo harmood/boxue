@@ -146,7 +146,7 @@ async function submitEdit() {
   try {
     await updateBank(editForm.id, {
       name: editForm.name.trim(),
-      description: editForm.description.trim() || null,
+      description: editForm.description.trim(),
       status: editForm.status,
       version: editForm.version
     })

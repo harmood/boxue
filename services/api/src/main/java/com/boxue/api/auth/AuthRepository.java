@@ -126,6 +126,13 @@ public class AuthRepository {
             ), userId));
     }
 
+    public boolean ownsMedia(UUID userId, UUID mediaId) {
+        Integer count = jdbc.queryForObject("""
+            SELECT count(*) FROM qb_media WHERE id = ? AND owner_id = ? AND deleted_at IS NULL
+            """, Integer.class, mediaId, userId);
+        return count != null && count > 0;
+    }
+
     public void updateProfile(UUID userId, AuthDtos.UpdateProfileRequest request) {
         jdbc.update("""
             UPDATE app_user_profile
@@ -198,24 +205,25 @@ public class AuthRepository {
         jdbc.update("DELETE FROM app_device WHERE id = ? AND user_id = ?", deviceId, userId);
     }
 
-    public void createSession(UUID sessionId, UUID userId, UUID deviceId, String refreshHash,
-                              Instant expiresAt, String userAgent, String ip) {
+    public void createSession(UUID sessionId, UUID userId, UUID deviceId, String audience,
+                              String refreshHash, Instant expiresAt, String userAgent, String ip) {
         jdbc.update("""
             INSERT INTO app_user_session
-              (id, user_id, device_id, refresh_token_hash, user_agent, ip, expires_at)
-            VALUES (?, ?, ?, ?, ?, ?::inet, ?)
-            """, sessionId, userId, deviceId, refreshHash, userAgent, ip,
+              (id, user_id, device_id, audience, refresh_token_hash, user_agent, ip, expires_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?::inet, ?)
+            """, sessionId, userId, deviceId, audience, refreshHash, userAgent, ip,
             java.sql.Timestamp.from(expiresAt));
     }
 
     public Optional<SessionRow> findSessionByHash(String refreshHash) {
         return first(jdbc.query("""
-            SELECT id, user_id, device_id, expires_at, revoked_at
+            SELECT id, user_id, device_id, audience, expires_at, revoked_at
             FROM app_user_session WHERE refresh_token_hash = ?
             """, (rs, rowNum) -> new SessionRow(
                 rs.getObject("id", UUID.class),
                 rs.getObject("user_id", UUID.class),
                 rs.getObject("device_id", UUID.class),
+                rs.getString("audience"),
                 rs.getTimestamp("expires_at").toInstant(),
                 rs.getTimestamp("revoked_at") == null ? null : rs.getTimestamp("revoked_at").toInstant()
             ), refreshHash));
@@ -286,7 +294,9 @@ public class AuthRepository {
     public void markEmailVerified(UUID userId) {
         jdbc.update("""
             UPDATE app_user
-            SET status = 'ACTIVE', email_verified_at = now(), updated_at = now()
+            SET status = CASE WHEN status = 'PENDING_VERIFICATION' THEN 'ACTIVE' ELSE status END,
+                email_verified_at = COALESCE(email_verified_at, now()),
+                updated_at = now()
             WHERE id = ?
             """, userId);
     }
@@ -378,6 +388,7 @@ public class AuthRepository {
         UUID id,
         UUID userId,
         UUID deviceId,
+        String audience,
         Instant expiresAt,
         Instant revokedAt
     ) {

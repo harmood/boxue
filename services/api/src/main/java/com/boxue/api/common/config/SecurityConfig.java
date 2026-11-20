@@ -81,7 +81,7 @@ public class SecurityConfig {
                     "/api/v1/devices",
                     "/api/v1/devices/**"
                 ).hasAuthority("AUD_client")
-                .anyRequest().authenticated())
+                .anyRequest().hasAuthority("AUD_client"))
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();

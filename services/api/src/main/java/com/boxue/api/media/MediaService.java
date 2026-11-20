@@ -51,10 +51,11 @@ public class MediaService {
         if (file == null || file.isEmpty()) {
             throw new MediaException(HttpStatus.BAD_REQUEST, "MEDIA_FILE_REQUIRED", "请选择要上传的文件");
         }
-        long maxBytes = properties.getMaxSizeMb() * 1024L * 1024L;
+        int maxSizeMb = Math.max(1, Math.min(properties.getMaxSizeMb(), 100));
+        long maxBytes = maxSizeMb * 1024L * 1024L;
         if (file.getSize() > maxBytes) {
             throw new MediaException(HttpStatus.PAYLOAD_TOO_LARGE, "MEDIA_TOO_LARGE",
-                "图片不能超过 " + properties.getMaxSizeMb() + " MB");
+                "图片不能超过 " + maxSizeMb + " MB");
         }
         byte[] bytes;
         try {
@@ -108,10 +109,12 @@ public class MediaService {
     @Transactional
     public void delete(UUID ownerId, UUID mediaId, HttpServletRequest httpRequest) {
         MediaRow row = requireMedia(ownerId, mediaId);
-        long references = repository.countQuestionReferences(mediaId);
-        if (references > 0) {
+        long questionReferences = repository.countQuestionReferences(mediaId);
+        long profileReferences = repository.countProfileReferences(mediaId);
+        if (questionReferences > 0 || profileReferences > 0) {
             throw new MediaException(HttpStatus.CONFLICT, "MEDIA_IN_USE",
-                "图片仍被题目引用，请先移除题目中的引用", Map.of("questionCount", references));
+                "图片仍被题目或头像引用，请先解除引用",
+                Map.of("questionCount", questionReferences, "profileCount", profileReferences));
         }
         storageService.delete(row.storageKey());
         repository.softDelete(mediaId, ownerId);

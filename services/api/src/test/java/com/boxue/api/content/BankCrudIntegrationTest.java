@@ -107,6 +107,13 @@ class BankCrudIntegrationTest {
         assertThat(updated.getBody().get("status")).isEqualTo("ARCHIVED");
         assertThat(updated.getBody().get("version")).isEqualTo(2);
 
+        ResponseEntity<Map> cleared = patch("/api/v1/banks/" + bankId, Map.of(
+            "description", "",
+            "version", 2), ownerToken);
+        assertThat(cleared.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(cleared.getBody().get("description")).isNull();
+        assertThat(cleared.getBody().get("version")).isEqualTo(3);
+
         ResponseEntity<Map> stale = patch("/api/v1/banks/" + bankId, Map.of(
             "name", "过期更新",
             "version", 1
@@ -161,6 +168,11 @@ class BankCrudIntegrationTest {
             WHERE entity_type = 'BANK' AND entity_id = ?::uuid AND operation = 'DELETE'
             """, Integer.class, bankId);
         assertThat(tombstones).isEqualTo(1);
+        Integer questionTombstones = jdbc.queryForObject("""
+            SELECT count(*) FROM sync_change
+            WHERE entity_type = 'QUESTION' AND entity_id = ? AND operation = 'DELETE'
+            """, Integer.class, questionId);
+        assertThat(questionTombstones).isEqualTo(1);
 
         ResponseEntity<Map> gone = get("/api/v1/banks/" + bankId, ownerToken);
         assertThat(gone.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);

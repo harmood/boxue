@@ -4,7 +4,9 @@ import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Base64;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
+import java.util.Locale;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -92,7 +94,7 @@ public class AdminService {
                                         UpdateUserStatusRequest request,
                                         HttpServletRequest httpRequest) {
         UserRow user = requireUser(userId);
-        String status = request.status().toUpperCase();
+        String status = request.status().toUpperCase(Locale.ROOT);
         if (!List.of("ACTIVE", "DISABLED", "LOCKED").contains(status)) {
             throw new AdminException(HttpStatus.BAD_REQUEST, "ADMIN_INVALID_STATUS", "不支持的用户状态");
         }
@@ -128,6 +130,9 @@ public class AdminService {
         }
 
         repository.replaceRoles(userId, new ArrayList<>(roleIds.values()), principal.userId());
+        if (!new HashSet<>(currentRoles).equals(new HashSet<>(roleCodes))) {
+            authRepository.revokeAllSessions(userId);
+        }
         auditService.log(principal.userId(), "ADMIN_USER_ROLES_CHANGED", "USER", userId.toString(),
             Map.of("roleCodes", roleCodes), httpRequest);
         return toDetail(requireUser(userId));
@@ -159,7 +164,7 @@ public class AdminService {
 
     @Transactional
     public Role createRole(AuthPrincipal principal, CreateRoleRequest request, HttpServletRequest httpRequest) {
-        String code = request.code().trim().toUpperCase();
+        String code = request.code().trim().toUpperCase(Locale.ROOT);
         if (repository.roleCodeExists(code)) {
             throw new AdminException(HttpStatus.CONFLICT, "ROLE_CODE_EXISTS", "角色码已存在");
         }

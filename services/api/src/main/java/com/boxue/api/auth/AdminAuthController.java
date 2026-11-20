@@ -27,9 +27,11 @@ import jakarta.validation.Valid;
 public class AdminAuthController {
 
     private final AuthService authService;
+    private final JwtService jwtService;
 
-    public AdminAuthController(AuthService authService) {
+    public AdminAuthController(AuthService authService, JwtService jwtService) {
         this.authService = authService;
+        this.jwtService = jwtService;
     }
 
     @PostMapping("/login")
@@ -89,7 +91,7 @@ public class AdminAuthController {
             .secure(secure)
             .sameSite("Lax")
             .path("/api/v1/admin/auth")
-            .maxAge(Duration.ofDays(30))
+            .maxAge(Duration.ofDays(jwtService.refreshTtlDays()))
             .build();
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
     }

@@ -1,12 +1,15 @@
 package com.boxue.api.content;
 
 import java.util.HashSet;
+import java.util.Locale;
 import java.util.Set;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 @Component
@@ -27,6 +30,9 @@ public class QuestionPayloadValidator {
         validateType(type);
         if (payload == null || !payload.isObject()) {
             throw invalid("payload 必须是 JSON 对象");
+        }
+        if (payload.toString().length() > 200_000) {
+            throw invalid("payload 过大");
         }
         ObjectNode node = payload.deepCopy();
         switch (type) {
@@ -53,8 +59,12 @@ public class QuestionPayloadValidator {
             if (key == null || key.isBlank() || key.length() > 10) {
                 throw invalid("选项 key 不能为空且长度不超过 10");
             }
-            if (!keys.add(key.toUpperCase())) {
+            String normalizedKey = key.toUpperCase(Locale.ROOT);
+            if (!keys.add(normalizedKey)) {
                 throw invalid("选项 key 不能重复：" + key);
+            }
+            if (option instanceof ObjectNode optionNode) {
+                optionNode.put("key", normalizedKey);
             }
             String content = text(option, "content");
             if (content == null || content.isBlank()) {
@@ -74,17 +84,22 @@ public class QuestionPayloadValidator {
             throw invalid("单选题只能有一个正确选项");
         }
         Set<String> correctKeys = new HashSet<>();
+        ArrayNode normalizedCorrect = JsonNodeFactory.instance.arrayNode();
         for (JsonNode keyNode : correct) {
             if (!keyNode.isTextual() || keyNode.asText().isBlank()) {
                 throw invalid("correctOptionKeys 必须是字符串数组");
             }
-            String key = keyNode.asText().toUpperCase();
+            String key = keyNode.asText().toUpperCase(Locale.ROOT);
             if (!keys.contains(key)) {
                 throw invalid("正确选项不存在：" + keyNode.asText());
             }
             if (!correctKeys.add(key)) {
                 throw invalid("正确选项不能重复：" + keyNode.asText());
             }
+            normalizedCorrect.add(key);
+        }
+        if (answer instanceof ObjectNode answerNode) {
+            answerNode.set("correctOptionKeys", normalizedCorrect);
         }
         payload.put("scoring", "ALL_OR_NOTHING");
     }

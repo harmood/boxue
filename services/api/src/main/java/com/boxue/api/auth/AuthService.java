@@ -3,6 +3,7 @@ package com.boxue.api.auth;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 
 import org.slf4j.Logger;
@@ -87,7 +88,9 @@ public class AuthService {
             throw new AuthException(HttpStatus.UNPROCESSABLE_ENTITY, "AUTH_TERMS_NOT_ACCEPTED",
                 "必须接受用户协议");
         }
-        if (repository.existsByEmailOrUsername(request.email(), request.username())) {
+        String email = request.email().trim().toLowerCase(Locale.ROOT);
+        String username = request.username().trim();
+        if (repository.existsByEmailOrUsername(email, username)) {
             throw new AuthException(HttpStatus.CONFLICT, "AUTH_ACCOUNT_EXISTS",
                 "邮箱或用户名已被使用");
         }
@@ -95,38 +98,38 @@ public class AuthService {
         UUID userId = UUID.randomUUID();
         String status = requireEmailVerification ? "PENDING_VERIFICATION" : "ACTIVE";
         String displayName = StringUtils.hasText(request.displayName())
-            ? request.displayName()
-            : request.username();
+            ? request.displayName().trim()
+            : username;
 
         repository.insertUser(
             userId,
-            request.email(),
-            request.username(),
+            email,
+            username,
             passwordEncoder.encode(request.password()),
             status,
             !requireEmailVerification);
         repository.insertProfile(userId, displayName);
         repository.assignRole(userId, "USER");
         if (requireEmailVerification) {
-            createEmailVerification(userId, request.email());
+            createEmailVerification(userId, email);
         }
 
         auditService.log(userId, "USER_REGISTERED", "USER", userId.toString(),
-            java.util.Map.of("email", request.email(), "username", request.username()), httpRequest);
+            java.util.Map.of("email", email, "username", username), httpRequest);
 
         String message = requireEmailVerification
             ? "注册成功，验证邮件已发送"
             : "注册成功，请登录";
 
         return new RegisterResponse(
-            new AuthUser(userId, request.email(), request.username(), displayName, status,
+            new AuthUser(userId, email, username, displayName, status,
                 !requireEmailVerification),
             message);
     }
 
     @Transactional
     public LoginResult login(LoginRequest request, HttpServletRequest httpRequest) {
-        UserRow user = authenticate(request.login(), request.password(), null, httpRequest);
+        UserRow user = authenticate(request.login().trim(), request.password(), null, httpRequest);
         repository.ensureDevice(user.id(), request.device());
 
         List<String> roles = repository.findRoles(user.id());
@@ -150,7 +153,7 @@ public class AuthService {
 
     @Transactional
     public AdminLoginResult adminLogin(AdminLoginRequest request, HttpServletRequest httpRequest) {
-        UserRow user = authenticate(request.email(), request.password(), "ADMIN", httpRequest);
+        UserRow user = authenticate(request.email().trim(), request.password(), "ADMIN", httpRequest);
         repository.ensureDevice(user.id(), request.device());
 
         List<String> roles = repository.findRoles(user.id());
@@ -182,6 +185,10 @@ public class AuthService {
                 "刷新令牌无效"));
         if (session.revokedAt() != null || !session.expiresAt().isAfter(Instant.now())) {
             throw new AuthException(HttpStatus.UNAUTHORIZED, "AUTH_REFRESH_EXPIRED", "刷新令牌已失效");
+        }
+        if (!audience.equals(session.audience())) {
+            throw new AuthException(HttpStatus.UNAUTHORIZED, "AUTH_REFRESH_AUDIENCE_MISMATCH",
+                "刷新令牌与当前客户端类型不匹配");
         }
 
         UserRow user = repository.findById(session.userId())
@@ -247,6 +254,10 @@ public class AuthService {
 
     @Transactional
     public CurrentUser updateProfile(UUID userId, UpdateProfileRequest request) {
+        if (request.avatarMediaId() != null && !repository.ownsMedia(userId, request.avatarMediaId())) {
+            throw new AuthException(HttpStatus.BAD_REQUEST, "MEDIA_NOT_FOUND",
+                "头像图片不存在或不属于当前用户");
+        }
         repository.updateProfile(userId, request);
         return me(userId);
     }
@@ -296,7 +307,7 @@ public class AuthService {
 
     @Transactional
     public MessageResponse resendVerification(EmailRequest request, HttpServletRequest httpRequest) {
-        repository.findByLogin(request.email())
+        repository.findByLogin(request.email().trim())
             .filter(user -> "PENDING_VERIFICATION".equals(user.status()) && user.emailVerifiedAt() == null)
             .ifPresent(user -> {
                 createEmailVerification(user.id(), user.email());
@@ -322,6 +333,9 @@ public class AuthService {
         UserRow user = repository.findById(token.userId())
             .orElseThrow(() -> new AuthException(HttpStatus.BAD_REQUEST, "AUTH_VERIFICATION_TOKEN_INVALID",
                 "验证链接无效"));
+        if (!"ACTIVE".equals(user.status())) {
+            throw new AuthException(HttpStatus.FORBIDDEN, "AUTH_ACCOUNT_DISABLED", "账号不可用");
+        }
         List<String> roles = repository.findRoles(user.id());
         List<String> permissions = repository.findPermissions(user.id());
         SessionTokens session = createSession(user, null, "client", roles, permissions, httpRequest);
@@ -335,7 +349,7 @@ public class AuthService {
 
     @Transactional
     public MessageResponse forgotPassword(EmailRequest request, HttpServletRequest httpRequest) {
-        repository.findByLogin(request.email())
+        repository.findByLogin(request.email().trim())
             .filter(user -> !"DISABLED".equals(user.status()) && !"DELETED".equals(user.status()))
             .ifPresent(user -> {
                 createPasswordReset(user);
@@ -456,7 +470,7 @@ public class AuthService {
         String ip = httpRequest == null ? null : httpRequest.getRemoteAddr();
         String userAgent = httpRequest == null ? null : httpRequest.getHeader("User-Agent");
 
-        repository.createSession(sessionId, user.id(), deviceId,
+        repository.createSession(sessionId, user.id(), deviceId, audience,
             jwtService.hashRefreshToken(refreshToken), expiresAt, userAgent, ip);
 
         String accessToken = jwtService.issueAccessToken(

@@ -63,6 +63,12 @@ public class MediaRepository {
             """, id, ownerId);
     }
 
+    public long countProfileReferences(UUID mediaId) {
+        Long count = jdbc.queryForObject(
+            "SELECT count(*) FROM app_user_profile WHERE avatar_media_id = ?", Long.class, mediaId);
+        return count == null ? 0 : count;
+    }
+
     public long countQuestionReferences(UUID mediaId) {
         Long count = jdbc.queryForObject("""
             SELECT count(*) FROM qb_question_media m

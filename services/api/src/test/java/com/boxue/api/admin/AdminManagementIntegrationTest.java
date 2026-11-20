@@ -120,6 +120,9 @@ class AdminManagementIntegrationTest {
             .map(String::valueOf).toList();
         assertThat(assignedRoles).contains("CONTENT_REVIEWER");
 
+        ResponseEntity<Map> revokedByRoleChange = get("/api/v1/me", userToken);
+        assertThat(revokedByRoleChange.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+
         ResponseEntity<Map> roleInUse = delete("/api/v1/admin/roles/" + roleId, adminToken);
         assertThat(roleInUse.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
 

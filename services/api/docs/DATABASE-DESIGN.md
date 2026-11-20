@@ -382,7 +382,8 @@ ON app_device (user_id, last_seen_at DESC);
 | `id` | uuid | PK | 会话 ID |
 | `user_id` | uuid | not null, FK app_user | 用户 |
 | `device_id` | uuid | null, FK app_device | 设备 |
-| `refresh_token_hash` | char(64) | not null | 刷新令牌哈希 |
+| `audience` | varchar(20) | not null default client | client/admin，刷新令牌受众 |
+| `refresh_token_hash` | char(64) | not null | 刷新令牌哈希（唯一） |
 | `user_agent` | text | null | UA |
 | `ip` | inet | null | IP |
 | `expires_at` | timestamptz | not null | 过期时间 |
