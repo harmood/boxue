@@ -206,6 +206,11 @@ flutter run
 | `JWT_REFRESH_TTL_DAYS` | `30` |
 | `BOXUE_AUTH_REQUIRE_EMAIL_VERIFICATION` | `false` |
 | `BOXUE_AUTH_LOG_DEV_LINKS` | `true`（仅本地） |
+| `AUTH_RATE_LIMIT_WINDOW_SECONDS` | `60` |
+| `AUTH_LOGIN_PER_IP` | `30` |
+| `AUTH_LOGIN_PER_ACCOUNT` | `10` |
+| `AUTH_ADMIN_LOGIN_PER_IP` | `10` |
+| `AUTH_ADMIN_LOGIN_PER_ACCOUNT` | `5` |
 | `BOXUE_WEB_BASE_URL` | `http://localhost:5173` |
 | `MAIL_HOST` / `MAIL_PORT` | `localhost` / `1025`（Mailpit） |
 | `MAIL_FROM` | `no-reply@boxue.local` |

@@ -179,7 +179,10 @@ Retry-After
 
 ```http
 429 Too Many Requests
+Retry-After: <seconds>
 ```
+
+登录接口当前按“IP + 账号”固定窗口限流，普通登录与管理端登录分别计数；超限返回 `AUTH_RATE_LIMITED`。
 
 ### 2.10 状态码
 
@@ -227,7 +230,7 @@ Retry-After
 | `FORBIDDEN` | 403 | 无权限 |
 | `NOT_FOUND` | 404 | 资源不存在 |
 | `CONFLICT` | 409 | 通用冲突 |
-| `RATE_LIMITED` | 429 | 请求过多 |
+| `AUTH_RATE_LIMITED` | 429 | 登录尝试过多 |
 | `INTERNAL_ERROR` | 500 | 服务端错误 |
 
 ### 3.2 账号错误码

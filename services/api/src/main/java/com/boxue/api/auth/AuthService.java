@@ -53,6 +53,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final AuditService auditService;
     private final MailService mailService;
+    private final LoginRateLimiter loginRateLimiter;
     private final boolean requireEmailVerification;
     private final int maxFailedLogins;
     private final long lockoutMinutes;
@@ -65,6 +66,7 @@ public class AuthService {
             PasswordEncoder passwordEncoder,
             AuditService auditService,
             MailService mailService,
+            LoginRateLimiter loginRateLimiter,
             @Value("${boxue.auth.require-email-verification:false}") boolean requireEmailVerification,
             @Value("${boxue.auth.max-failed-logins:5}") int maxFailedLogins,
             @Value("${boxue.auth.lockout-minutes:15}") long lockoutMinutes,
@@ -75,6 +77,7 @@ public class AuthService {
         this.passwordEncoder = passwordEncoder;
         this.auditService = auditService;
         this.mailService = mailService;
+        this.loginRateLimiter = loginRateLimiter;
         this.requireEmailVerification = requireEmailVerification;
         this.maxFailedLogins = maxFailedLogins;
         this.lockoutMinutes = lockoutMinutes;
@@ -129,7 +132,9 @@ public class AuthService {
 
     @Transactional
     public LoginResult login(LoginRequest request, HttpServletRequest httpRequest) {
+        loginRateLimiter.checkLogin(clientIp(httpRequest), request.login());
         UserRow user = authenticate(request.login().trim(), request.password(), null, httpRequest);
+        loginRateLimiter.resetLoginAccount(request.login());
         repository.ensureDevice(user.id(), request.device());
 
         List<String> roles = repository.findRoles(user.id());
@@ -153,7 +158,9 @@ public class AuthService {
 
     @Transactional
     public AdminLoginResult adminLogin(AdminLoginRequest request, HttpServletRequest httpRequest) {
+        loginRateLimiter.checkAdminLogin(clientIp(httpRequest), request.email());
         UserRow user = authenticate(request.email().trim(), request.password(), "ADMIN", httpRequest);
+        loginRateLimiter.resetAdminAccount(request.email());
         repository.ensureDevice(user.id(), request.device());
 
         List<String> roles = repository.findRoles(user.id());
@@ -414,6 +421,10 @@ public class AuthService {
         } catch (RuntimeException ex) {
             log.warn("Failed to send password reset email to {}: {}", user.email(), ex.getMessage());
         }
+    }
+
+    private String clientIp(HttpServletRequest request) {
+        return request == null ? "unknown" : request.getRemoteAddr();
     }
 
     private UserRow authenticate(String login, String password, String requiredRole,

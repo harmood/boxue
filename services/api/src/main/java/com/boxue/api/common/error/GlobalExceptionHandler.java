@@ -22,6 +22,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import com.boxue.api.admin.AdminException;
 import com.boxue.api.content.ContentException;
 import com.boxue.api.media.MediaException;
+import com.boxue.api.auth.RateLimitException;
 import com.boxue.api.auth.AuthException;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -82,6 +83,22 @@ public class GlobalExceptionHandler {
             exception.details(), request);
     }
 
+    @ExceptionHandler(RateLimitException.class)
+    public ResponseEntity<ApiError> handleRateLimit(
+        RateLimitException exception,
+        HttpServletRequest request
+    ) {
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+            .header("Retry-After", String.valueOf(exception.retryAfterSeconds()))
+            .body(new ApiError(
+                exception.code(),
+                exception.getMessage(),
+                Map.of("retryAfterSeconds", exception.retryAfterSeconds()),
+                traceId(request),
+                Instant.now()
+            ));
+    }
+
     @ExceptionHandler(MediaException.class)
     public ResponseEntity<ApiError> handleMedia(
         MediaException exception,
@@ -137,16 +154,17 @@ public class GlobalExceptionHandler {
         Map<String, Object> details,
         HttpServletRequest request
     ) {
-        String traceId = request.getHeader("X-Request-Id");
-        if (traceId == null || traceId.isBlank()) {
-            traceId = UUID.randomUUID().toString();
-        }
         return ResponseEntity.status(status).body(new ApiError(
             code,
             message,
             details,
-            traceId,
+            traceId(request),
             Instant.now()
         ));
+    }
+
+    private String traceId(HttpServletRequest request) {
+        String traceId = request.getHeader("X-Request-Id");
+        return traceId == null || traceId.isBlank() ? UUID.randomUUID().toString() : traceId;
     }
 }

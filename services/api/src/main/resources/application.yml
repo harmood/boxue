@@ -65,6 +65,12 @@ boxue:
       refresh-token-ttl-days: ${JWT_REFRESH_TTL_DAYS:30}
   auth:
     require-email-verification: ${BOXUE_AUTH_REQUIRE_EMAIL_VERIFICATION:false}
+    rate-limit:
+      window-seconds: ${AUTH_RATE_LIMIT_WINDOW_SECONDS:60}
+      login-per-ip: ${AUTH_LOGIN_PER_IP:30}
+      login-per-account: ${AUTH_LOGIN_PER_ACCOUNT:10}
+      admin-per-ip: ${AUTH_ADMIN_LOGIN_PER_IP:10}
+      admin-per-account: ${AUTH_ADMIN_LOGIN_PER_ACCOUNT:5}
     max-failed-logins: 5
     lockout-minutes: 15
     email-verification-token-minutes: 60
