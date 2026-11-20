@@ -77,6 +77,7 @@ boxue:
       encryption-key: ${BOXUE_TOTP_SECRET_KEY:}
     max-failed-logins: 5
     lockout-minutes: 15
+    refresh-rotation-grace-seconds: ${AUTH_REFRESH_ROTATION_GRACE_SECONDS:30}
     email-verification-token-minutes: 60
     password-reset-token-minutes: 30
     log-dev-links: ${BOXUE_AUTH_LOG_DEV_LINKS:false}

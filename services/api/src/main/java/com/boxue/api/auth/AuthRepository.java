@@ -217,7 +217,7 @@ public class AuthRepository {
 
     public Optional<SessionRow> findSessionByHash(String refreshHash) {
         return first(jdbc.query("""
-            SELECT id, user_id, device_id, audience, expires_at, revoked_at
+            SELECT id, user_id, device_id, audience, expires_at, revoked_at, replaced_by_session_id
             FROM app_user_session WHERE refresh_token_hash = ?
             """, (rs, rowNum) -> new SessionRow(
                 rs.getObject("id", UUID.class),
@@ -225,8 +225,39 @@ public class AuthRepository {
                 rs.getObject("device_id", UUID.class),
                 rs.getString("audience"),
                 rs.getTimestamp("expires_at").toInstant(),
-                rs.getTimestamp("revoked_at") == null ? null : rs.getTimestamp("revoked_at").toInstant()
+                rs.getTimestamp("revoked_at") == null ? null : rs.getTimestamp("revoked_at").toInstant(),
+                rs.getObject("replaced_by_session_id", UUID.class)
             ), refreshHash));
+    }
+
+    public Optional<SessionRow> findSessionByHashForUpdate(String refreshHash) {
+        return first(jdbc.query("""
+            SELECT id, user_id, device_id, audience, expires_at, revoked_at, replaced_by_session_id
+            FROM app_user_session WHERE refresh_token_hash = ? FOR UPDATE
+            """, (rs, rowNum) -> new SessionRow(
+                rs.getObject("id", UUID.class),
+                rs.getObject("user_id", UUID.class),
+                rs.getObject("device_id", UUID.class),
+                rs.getString("audience"),
+                rs.getTimestamp("expires_at").toInstant(),
+                rs.getTimestamp("revoked_at") == null ? null : rs.getTimestamp("revoked_at").toInstant(),
+                rs.getObject("replaced_by_session_id", UUID.class)
+            ), refreshHash));
+    }
+
+    public Optional<SessionRow> findSessionById(UUID sessionId) {
+        return first(jdbc.query("""
+            SELECT id, user_id, device_id, audience, expires_at, revoked_at, replaced_by_session_id
+            FROM app_user_session WHERE id = ?
+            """, (rs, rowNum) -> new SessionRow(
+                rs.getObject("id", UUID.class),
+                rs.getObject("user_id", UUID.class),
+                rs.getObject("device_id", UUID.class),
+                rs.getString("audience"),
+                rs.getTimestamp("expires_at").toInstant(),
+                rs.getTimestamp("revoked_at") == null ? null : rs.getTimestamp("revoked_at").toInstant(),
+                rs.getObject("replaced_by_session_id", UUID.class)
+            ), sessionId));
     }
 
     public boolean isSessionActive(UUID sessionId) {
@@ -235,6 +266,14 @@ public class AuthRepository {
             WHERE id = ? AND revoked_at IS NULL AND expires_at > now()
             """, Integer.class, sessionId);
         return count != null && count > 0;
+    }
+
+    public void revokeSessionReplacedBy(UUID sessionId, UUID replacementSessionId) {
+        jdbc.update("""
+            UPDATE app_user_session
+            SET revoked_at = now(), replaced_by_session_id = ?
+            WHERE id = ? AND revoked_at IS NULL
+            """, replacementSessionId, sessionId);
     }
 
     public void revokeSession(UUID sessionId) {
@@ -390,7 +429,8 @@ public class AuthRepository {
         UUID deviceId,
         String audience,
         Instant expiresAt,
-        Instant revokedAt
+        Instant revokedAt,
+        UUID replacedBySessionId
     ) {
     }
 

@@ -12,7 +12,7 @@
 | 4 | 同步模块第一条完整链路；题库创建/更新 UPSERT 变更 | 已修复 |
 | 5 | 题目列表 N+1 查询（媒体、标签、知识点批量加载） | 已修复 |
 | 6 | 图片压缩、EXIF 剥离、SVG 兜底 | 已修复 |
-| 7 | 多标签页并发刷新令牌轮换竞态 | 待修复 |
+| 7 | 多标签页并发刷新令牌轮换竞态 | 已修复 |
 | 8 | CORS 来源改为配置项 | 待修复 |
 | 9 | 系统角色（USER/ADMIN）修改保护 | 待修复 |
 | 10 | 前端/Android 业务级自动化测试 | 待修复 |
@@ -67,6 +67,14 @@
 - SVG 先做安全解析与脚本/外链清理，再由 Batik 栅格化为 PNG
 - 输出格式可能变化：透明图转 PNG，非透明 WebP 可转 JPEG
 - 新增配置：`S3_IMAGE_MAX_DIMENSION`、`S3_JPEG_QUALITY`
+
+## 第 7 项说明
+
+- 刷新时会话行使用 `SELECT ... FOR UPDATE`，避免并发轮换
+- 旧会话记录 `replaced_by_session_id`，默认 30 秒宽限期内允许重放
+- 重放只返回新的 Access Token，不重复轮换或覆盖 Refresh Cookie
+- Web/Admin 前端使用 Web Locks（不可用时退回 localStorage 锁）串行化跨标签页刷新
+- 超过宽限期或替换会话已撤销时仍返回 401
 
 ## 说明
 

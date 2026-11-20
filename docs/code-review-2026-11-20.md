@@ -79,14 +79,14 @@
 - 题目列表 N+1 查询已修复：媒体、标签、知识点改为按页批量加载。
 - 图片压缩、EXIF 剥离、SVG 栅格化已于后续修复。
 - 图片上传在“对象写入成功但数据库插入失败”的极端情况下可能产生孤儿对象。
-- 多标签页同时刷新时，服务端刷新令牌轮换可能让其中一个标签页刷新失败。
+- 多标签页并发刷新竞态已于后续修复：会话行锁 + 宽限重放 + 前端跨标签页锁。
 - CORS 来源目前硬编码为本地开发地址，生产需改为配置项。
 - 系统角色（USER/ADMIN）仍允许修改名称和权限，建议后续限制。
 - 前端/Android 仍缺少业务级自动化测试。
 
 ## 验证
 
-- `mvn -f services/api/pom.xml verify`：19 个测试全部通过
+- `mvn -f services/api/pom.xml verify`：20 个测试全部通过
 - `pnpm typecheck`：Web / Admin / Desktop 通过
 - `pnpm build:web` / `pnpm build:admin`：通过
 - 真实 RustFS 冒烟：上传、下载哈希一致、题目引用、删除保护均通过

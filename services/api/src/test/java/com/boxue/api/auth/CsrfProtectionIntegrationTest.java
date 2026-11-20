@@ -3,6 +3,11 @@ package com.boxue.api.auth;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.HashMap;
+import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.Map;
 
 import org.junit.jupiter.api.Test;
@@ -97,11 +102,65 @@ class CsrfProtectionIntegrationTest {
         assertThat(rotated).containsKeys("refresh_token", "boxue_csrf");
         assertThat(rotated.get("boxue_csrf")).isNotEqualTo(cookies.get("boxue_csrf"));
 
+        ResponseEntity<Map> replay = refreshWithCookies(cookies, cookies.get("boxue_csrf"));
+        assertThat(replay.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat((String) replay.getBody().get("accessToken")).isNotBlank();
+        assertThat(cookies(replay)).doesNotContainKey("refresh_token");
+
+        ResponseEntity<Map> next = refreshWithCookies(rotated, rotated.get("boxue_csrf"));
+        assertThat(next.getStatusCode()).isEqualTo(HttpStatus.OK);
+
         ResponseEntity<Map> csrfEndpoint = rest.exchange("/api/v1/auth/csrf", HttpMethod.GET,
             new HttpEntity<>(new HttpHeaders()), Map.class);
         assertThat(csrfEndpoint.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat((String) csrfEndpoint.getBody().get("csrfToken")).isNotBlank();
         assertThat(cookies(csrfEndpoint)).containsKey("boxue_csrf");
+    }
+
+    @Test
+    void concurrentRefreshRequestsBothSucceedWithSingleRotation() throws Exception {
+        String email = "csrf-concurrent@boxue.local";
+        String password = "CsrfConcurrent-2026!";
+        register(email, "csrfconcurrent", password);
+
+        HttpHeaders loginHeaders = new HttpHeaders();
+        loginHeaders.setContentType(MediaType.APPLICATION_JSON);
+        loginHeaders.set("X-Client-Platform", "web");
+        ResponseEntity<Map> login = rest.exchange("/api/v1/auth/login", HttpMethod.POST,
+            new HttpEntity<>(Map.of(
+                "login", email,
+                "password", password,
+                "device", device("WEB")
+            ), loginHeaders), Map.class);
+        Map<String, String> cookies = cookies(login);
+        String csrf = cookies.get("boxue_csrf");
+
+        ExecutorService pool = Executors.newFixedThreadPool(2);
+        CountDownLatch start = new CountDownLatch(1);
+        try {
+            Future<ResponseEntity<Map>> first = pool.submit(() -> {
+                start.await();
+                return refreshWithCookies(cookies, csrf);
+            });
+            Future<ResponseEntity<Map>> second = pool.submit(() -> {
+                start.await();
+                return refreshWithCookies(cookies, csrf);
+            });
+            start.countDown();
+            ResponseEntity<Map> firstResponse = first.get();
+            ResponseEntity<Map> secondResponse = second.get();
+
+            assertThat(firstResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+            assertThat(secondResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+            assertThat((String) firstResponse.getBody().get("accessToken")).isNotBlank();
+            assertThat((String) secondResponse.getBody().get("accessToken")).isNotBlank();
+            long rotations = List.of(cookies(firstResponse), cookies(secondResponse)).stream()
+                .filter(map -> map.containsKey("refresh_token"))
+                .count();
+            assertThat(rotations).isEqualTo(1);
+        } finally {
+            pool.shutdownNow();
+        }
     }
 
     @Test

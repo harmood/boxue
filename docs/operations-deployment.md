@@ -213,6 +213,7 @@ flutter run
 | `AUTH_LOGIN_PER_ACCOUNT` | `10` |
 | `AUTH_ADMIN_LOGIN_PER_IP` | `10` |
 | `AUTH_ADMIN_LOGIN_PER_ACCOUNT` | `5` |
+| `AUTH_REFRESH_ROTATION_GRACE_SECONDS` | `30`（并发刷新重放宽限期） |
 | `BOXUE_CSRF_SECRET` | CSRF Token 签名密钥；开发留空时从 Client JWT Secret 派生 |
 | `BOXUE_TOTP_SECRET_KEY` | 生产必须配置的 AES 密钥材料；开发留空时回退到 JWT Admin Secret 派生 |
 | `BOXUE_WEB_BASE_URL` | `http://localhost:5173` |

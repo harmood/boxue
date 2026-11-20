@@ -491,6 +491,8 @@ Web：
 
 - 从 HttpOnly Cookie 读取 Refresh Token
 - 需要 CSRF 防护
+- 每次刷新轮换 Refresh Token；旧令牌在默认 30 秒宽限期内可重放，只返回 Access Token，不重复覆盖 Cookie
+- 服务端使用会话行锁，避免多标签页同时轮换
 
 Electron/Android：
 

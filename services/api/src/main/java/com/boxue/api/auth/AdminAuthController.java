@@ -78,8 +78,10 @@ public class AdminAuthController {
         }
         String rawToken = StringUtils.hasText(bodyToken) ? bodyToken : cookieToken;
         AuthService.RefreshResult result = authService.refresh(rawToken, "admin", httpRequest);
-        setRefreshCookie(response, result.refreshToken(), httpRequest.isSecure());
-        setCsrfCookie(response, csrfService.issueToken(), httpRequest.isSecure());
+        if (StringUtils.hasText(result.refreshToken())) {
+            setRefreshCookie(response, result.refreshToken(), httpRequest.isSecure());
+            setCsrfCookie(response, csrfService.issueToken(), httpRequest.isSecure());
+        }
         AccessTokenResponse body = result.response();
         return ResponseEntity.ok(new AccessTokenResponse(body.accessToken(), body.expiresIn(), null));
     }

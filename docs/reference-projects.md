@@ -502,3 +502,25 @@ BANK 同步的 push/pull/status、幂等和冲突处理参考：
 
 - 博学只做上传入口的统一处理，不做完整图片编辑器或 CDN 转码服务。
 - SVG 白名单仍以安全为先，复杂 SVG 效果可能被简化。
+
+## 13. 刷新令牌轮换与多标签页并发参考（2026-11-20）
+
+| 参考项目/规范 | 借鉴点 | 博学落地 |
+| --- | --- | --- |
+| IETF OAuth 2.0 Security BCP | Refresh Token 轮换、重放检测、旧令牌失效 | 旧会话记录替换关系，默认 30 秒宽限重放 |
+| Auth0 / Keycloak | Refresh Token Rotation 与并发客户端处理 | 宽限期内旧令牌只换 Access Token，不重复轮换 |
+| MDN Web Locks API | 浏览器跨标签页互斥锁 | Web/Admin 刷新使用 Web Locks 串行化 |
+| localStorage lock fallback | 不支持 Web Locks 的浏览器降级 | 带过期时间和随机持有者 ID 的本地锁 |
+| PostgreSQL row lock | 用数据库行锁串行化并发刷新 | `SELECT ... FOR UPDATE` 锁定 refresh token 会话行 |
+
+### 13.1 关键取舍
+
+- 采用短宽限期而不是永久接受旧 Refresh Token，兼顾并发体验与安全性。
+- 重放请求不返回新的 Refresh Token，避免覆盖其他标签页刚写入的新 Cookie。
+- 会话行锁保证同一 Refresh Token 同时只有一个事务执行轮换。
+- 超过宽限期、替换会话已撤销或账号禁用时仍然拒绝刷新。
+
+### 13.2 与开源项目的差异
+
+- 博学当前未实现 Refresh Token 重用检测告警（reuse detection alert）。
+- Web Locks 不可用时退化为 localStorage 锁，跨浏览器锁精度弱于服务端行锁。

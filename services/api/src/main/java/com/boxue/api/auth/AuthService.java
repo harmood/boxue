@@ -60,6 +60,7 @@ public class AuthService {
     private final long lockoutMinutes;
     private final long emailVerificationTokenMinutes;
     private final long passwordResetTokenMinutes;
+    private final long refreshRotationGraceSeconds;
 
     public AuthService(
             AuthRepository repository,
@@ -73,7 +74,8 @@ public class AuthService {
             @Value("${boxue.auth.max-failed-logins:5}") int maxFailedLogins,
             @Value("${boxue.auth.lockout-minutes:15}") long lockoutMinutes,
             @Value("${boxue.auth.email-verification-token-minutes:60}") long emailVerificationTokenMinutes,
-            @Value("${boxue.auth.password-reset-token-minutes:30}") long passwordResetTokenMinutes) {
+            @Value("${boxue.auth.password-reset-token-minutes:30}") long passwordResetTokenMinutes,
+            @Value("${boxue.auth.refresh-rotation-grace-seconds:30}") long refreshRotationGraceSeconds) {
         this.repository = repository;
         this.jwtService = jwtService;
         this.passwordEncoder = passwordEncoder;
@@ -86,6 +88,7 @@ public class AuthService {
         this.lockoutMinutes = lockoutMinutes;
         this.emailVerificationTokenMinutes = emailVerificationTokenMinutes;
         this.passwordResetTokenMinutes = passwordResetTokenMinutes;
+        this.refreshRotationGraceSeconds = Math.max(0, Math.min(refreshRotationGraceSeconds, 300));
     }
 
     @Transactional
@@ -198,10 +201,10 @@ public class AuthService {
         if (!StringUtils.hasText(rawRefreshToken)) {
             throw new AuthException(HttpStatus.UNAUTHORIZED, "AUTH_REFRESH_REQUIRED", "缺少刷新令牌");
         }
-        SessionRow session = repository.findSessionByHash(jwtService.hashRefreshToken(rawRefreshToken))
+        SessionRow session = repository.findSessionByHashForUpdate(jwtService.hashRefreshToken(rawRefreshToken))
             .orElseThrow(() -> new AuthException(HttpStatus.UNAUTHORIZED, "AUTH_REFRESH_INVALID",
                 "刷新令牌无效"));
-        if (session.revokedAt() != null || !session.expiresAt().isAfter(Instant.now())) {
+        if (!session.expiresAt().isAfter(Instant.now())) {
             throw new AuthException(HttpStatus.UNAUTHORIZED, "AUTH_REFRESH_EXPIRED", "刷新令牌已失效");
         }
         if (!audience.equals(session.audience())) {
@@ -222,15 +225,42 @@ public class AuthService {
             throw new AuthException(HttpStatus.FORBIDDEN, "AUTH_ADMIN_REQUIRED", "需要管理员权限");
         }
 
-        repository.revokeSession(session.id());
+        if (session.revokedAt() != null) {
+            return replayRotatedSession(session, audience, user, roles, permissions, httpRequest);
+        }
+
         SessionTokens tokens = createSession(user, session.deviceId(), audience, roles, permissions, httpRequest);
+        repository.revokeSessionReplacedBy(session.id(), tokens.sessionId());
 
         auditService.log(user.id(), "TOKEN_REFRESHED", "SESSION", session.id().toString(),
             java.util.Map.of("audience", audience), httpRequest);
 
         return new RefreshResult(
             new AccessTokenResponse(tokens.accessToken(), jwtService.accessTtlSeconds(), tokens.refreshToken()),
-            tokens.refreshToken());
+            tokens.refreshToken(), false);
+    }
+
+    private RefreshResult replayRotatedSession(SessionRow session, String audience, UserRow user,
+                                               List<String> roles, List<String> permissions,
+                                               HttpServletRequest httpRequest) {
+        if (session.replacedBySessionId() == null || refreshRotationGraceSeconds == 0
+            || session.revokedAt().plusSeconds(refreshRotationGraceSeconds).isBefore(Instant.now())) {
+            throw new AuthException(HttpStatus.UNAUTHORIZED, "AUTH_REFRESH_EXPIRED", "刷新令牌已失效");
+        }
+        SessionRow replacement = repository.findSessionById(session.replacedBySessionId())
+            .filter(row -> row.revokedAt() == null)
+            .filter(row -> row.expiresAt().isAfter(Instant.now()))
+            .filter(row -> audience.equals(row.audience()))
+            .orElseThrow(() -> new AuthException(HttpStatus.UNAUTHORIZED, "AUTH_REFRESH_EXPIRED",
+                "刷新令牌已失效"));
+        String accessToken = jwtService.issueAccessToken(
+            user.id(), replacement.id(), replacement.deviceId(), audience, roles, permissions);
+        auditService.log(user.id(), "TOKEN_REFRESH_REPLAYED", "SESSION", session.id().toString(),
+            java.util.Map.of("audience", audience), httpRequest);
+        return new RefreshResult(
+            new AccessTokenResponse(accessToken, jwtService.accessTtlSeconds(), null),
+            null,
+            true);
     }
 
     @Transactional
@@ -527,6 +557,6 @@ public class AuthService {
     public record AdminLoginResult(AdminTokenResponse response, String refreshToken) {
     }
 
-    public record RefreshResult(AccessTokenResponse response, String refreshToken) {
+    public record RefreshResult(AccessTokenResponse response, String refreshToken, boolean replayed) {
     }
 }

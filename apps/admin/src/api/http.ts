@@ -59,11 +59,47 @@ async function ensureAdminCsrfToken(): Promise<string | null> {
   return data.csrfToken ?? readCookie('boxue_admin_csrf')
 }
 
+async function withAdminRefreshLock<T>(task: () => Promise<T>): Promise<T> {
+  const locks = (navigator as unknown as { locks?: { request: (name: string, cb: () => Promise<T>) => Promise<T> } }).locks
+  if (locks?.request) {
+    return locks.request('boxue-admin-refresh', task)
+  }
+  const key = 'boxue.admin.refresh.lock'
+  const id = crypto.randomUUID()
+  const deadline = Date.now() + 10000
+  while (Date.now() < deadline) {
+    const current = readLock(key)
+    if (!current || current.expires < Date.now()) {
+      localStorage.setItem(key, JSON.stringify({ id, expires: Date.now() + 15000 }))
+      if (readLock(key)?.id === id) {
+        try {
+          return await task()
+        } finally {
+          if (readLock(key)?.id === id) {
+            localStorage.removeItem(key)
+          }
+        }
+      }
+    }
+    await new Promise((resolve) => setTimeout(resolve, 100))
+  }
+  throw new Error('admin refresh lock timeout')
+}
+
+function readLock(key: string): { id: string; expires: number } | null {
+  try {
+    const raw = localStorage.getItem(key)
+    return raw ? (JSON.parse(raw) as { id: string; expires: number }) : null
+  } catch {
+    return null
+  }
+}
+
 let refreshPromise: Promise<boolean> | null = null
 
 async function refreshAdminToken(): Promise<boolean> {
   if (!refreshPromise) {
-    refreshPromise = (async () => {
+    refreshPromise = withAdminRefreshLock(async () => {
       const csrfToken = await ensureAdminCsrfToken()
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
@@ -87,7 +123,7 @@ async function refreshAdminToken(): Promise<boolean> {
       }
       setAdminAccessToken(data.accessToken)
       return true
-    })().finally(() => {
+    }).catch(() => false).finally(() => {
       refreshPromise = null
     })
   }
